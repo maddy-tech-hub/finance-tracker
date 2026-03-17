@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import toast from "react-hot-toast";
 import { InputField } from "components/forms/InputField";
 import { authService } from "services/authService";
@@ -22,8 +23,11 @@ export const SignupPage = () => {
       await authService.register(values);
       toast.success("Account created. You can now sign in.");
       navigate("/login");
-    } catch {
-      toast.error("Registration failed. Please review your details.");
+    } catch (error) {
+      const message = isAxiosError(error)
+        ? (error.response?.data?.message ?? "Registration failed. Please review your details.")
+        : "Registration failed. Please review your details.";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

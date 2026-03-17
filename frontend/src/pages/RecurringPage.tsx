@@ -46,10 +46,7 @@ export const RecurringPage = () => {
             type: Number(form.get("type")),
             frequency: Number(form.get("frequency")),
             amount: Number(form.get("amount")),
-            nextRunDate: String(form.get("nextRunDate")),
-            startDate: String(form.get("nextRunDate")),
-            endDate: undefined,
-            note: String(form.get("note") || ""),
+            nextRunDate: String(form.get("nextRunDate")),            note: String(form.get("note") || ""),
             isPaused: false
           });
           (e.currentTarget as HTMLFormElement).reset();
@@ -95,3 +92,4 @@ export const RecurringPage = () => {
     </div>
   );
 };
+

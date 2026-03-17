@@ -84,6 +84,6 @@ public sealed class BudgetService(FinanceTrackerDbContext db, ICurrentUserServic
     {
         if (request.Amount <= 0) throw new AppValidationException("Budget amount must be greater than zero.");
         if (request.Month is < 1 or > 12) throw new AppValidationException("Month must be 1-12.");
-        if (request.Year < 2000 or > 2100) throw new AppValidationException("Year is invalid.");
+        if (request.Year is < 2000 or > 2100) throw new AppValidationException("Year is invalid.");
     }
 }

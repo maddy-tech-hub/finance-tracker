@@ -1,4 +1,8 @@
 using FinanceTracker.Application.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
 
 namespace FinanceTracker.Infrastructure.HostedServices;
 

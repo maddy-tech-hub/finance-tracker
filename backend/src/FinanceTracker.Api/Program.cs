@@ -106,7 +106,7 @@ app.MapControllers();
 
 app.Run();
 
-static async Task ApplyMigrationsWithRetryAsync(IServiceProvider services, ILogger logger, bool isDevelopment)
+static async Task ApplyMigrationsWithRetryAsync(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger, bool isDevelopment)
 {
     const int maxAttempts = 10;
     var delay = TimeSpan.FromSeconds(3);
@@ -132,3 +132,4 @@ static async Task ApplyMigrationsWithRetryAsync(IServiceProvider services, ILogg
 }
 
 public partial class Program { }
+

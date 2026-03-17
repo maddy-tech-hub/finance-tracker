@@ -1,3 +1,4 @@
+using Xunit;
 using FinanceTracker.Application.Common;
 using FluentAssertions;
 

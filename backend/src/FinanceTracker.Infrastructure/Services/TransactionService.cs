@@ -19,7 +19,8 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
         if (categoryId.HasValue) query = query.Where(x => x.CategoryId == categoryId.Value);
         if (!string.IsNullOrWhiteSpace(search)) query = query.Where(x => x.Note != null && x.Note.ToLower().Contains(search.ToLower()));
 
-        return await query.OrderByDescending(x => x.TransactionDate).Select(Map).ToListAsync(cancellationToken);
+        var items = await query.OrderByDescending(x => x.TransactionDate).ToListAsync(cancellationToken);
+        return items.Select(Map).ToList();
     }
 
     public async Task<TransactionResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -148,3 +149,4 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
 
     private static TransactionResponse Map(Transaction x) => new(x.Id, x.AccountId, x.DestinationAccountId, x.CategoryId, x.Type, x.Amount, x.TransactionDate, x.Note);
 }
+
