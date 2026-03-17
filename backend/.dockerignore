@@ -1,0 +1,21 @@
+# Ignore build artifacts
+bin/
+obj/
+out/
+
+# User/local files
+*.user
+*.suo
+*.cache
+.vs/
+
+# Git / docs
+.git/
+.gitignore
+README.md
+
+# Test output
+TestResults/
+
+# Node artifacts (if any)
+**/node_modules/

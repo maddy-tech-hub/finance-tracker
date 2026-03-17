@@ -1,0 +1,96 @@
+# ------------------------------
+# OS-generated files
+# ------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.swp
+*.swo
+
+# ------------------------------
+# IDE / Editor
+# ------------------------------
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# ------------------------------
+# .NET / ASP.NET Core
+# ------------------------------
+**/bin/
+**/obj/
+**/out/
+artifacts/
+TestResults/
+*.trx
+*.nupkg
+*.snupkg
+
+# local tooling/cache
+.dotnet/
+.templateengine/
+
+# ------------------------------
+# Node / React / Vite
+# ------------------------------
+**/node_modules/
+**/dist/
+**/.vite/
+**/.cache/
+**/.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ------------------------------
+# Logs / temp
+# ------------------------------
+*.log
+logs/
+*.tmp
+*.temp
+
+# ------------------------------
+# Coverage / test artifacts
+# ------------------------------
+coverage/
+**/coverage/
+*.coverage
+*.coveragexml
+lcov.info
+
+# ------------------------------
+# Environment / secrets
+# ------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# ASP.NET local config overrides
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+!**/appsettings.example.json
+!**/appsettings.*.example.json
+
+# ------------------------------
+# Docker / Podman local overrides
+# ------------------------------
+compose.override.yml
+compose.override.yaml
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# ------------------------------
+# Optional Git noise
+# ------------------------------
+*.orig
+*.rej
