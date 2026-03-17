@@ -54,6 +54,13 @@ a {
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 18px;
+  overflow: hidden;
+}
+
+.sidebar nav {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .brand-wrap {
@@ -679,7 +686,7 @@ a {
     position: static;
     height: auto;
     grid-template-rows: auto auto;
-  }
+    overflow: hidden;}
 
   .sidebar-foot {
     display: none;
@@ -842,3 +849,5 @@ a {
     flex-direction: column;
   }
 }
+
+
