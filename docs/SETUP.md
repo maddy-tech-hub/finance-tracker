@@ -1,73 +1,90 @@
-# Deployment Quick Guide
+# Local Deployment Guide
 
-This document contains only build and deploy steps.
+Use one flow at a time.
 
-## 1) Production Env Vars (you must set)
+## Ports (quick reference)
 
-### Backend (`backend/src/FinanceTracker.Api`)
-- `ASPNETCORE_ENVIRONMENT=Production`
+### Normal local flow (`dotnet run` + Vite)
+- Backend HTTP: `http://localhost:5213`
+- Backend HTTPS: `https://localhost:7010`
+- Frontend: `http://localhost:5173`
+- PostgreSQL (local service): `localhost:5432`
+
+### Podman flow (`podman compose`)
+- Frontend: `http://localhost:4173`
+- Backend: `http://localhost:8080`
+- PostgreSQL (container): `localhost:5432`
+
+## Required env vars (Production values from your side)
+
+### Backend
 - `ConnectionStrings__Postgres`
 - `Jwt__Issuer`
 - `Jwt__Audience`
-- `Jwt__Key` (minimum 32 chars)
+- `Jwt__Key` (min 32 chars)
 - `Cors__AllowedOrigins__0`
-- `UseHttpsRedirection` (set as needed behind your reverse proxy)
-
-### Frontend (`frontend/.env`)
-- `VITE_API_URL` (public API base URL)
-
-## 2) Normal Deployment (without Podman)
-
-### Backend
-```bash
-dotnet restore backend/FinanceTracker.slnx --configfile NuGet.Config
-dotnet build backend/FinanceTracker.slnx -c Release
-dotnet publish backend/src/FinanceTracker.Api/FinanceTracker.Api.csproj -c Release -o backend/out
-```
-
-Run published API:
-```bash
-dotnet backend/out/FinanceTracker.Api.dll
-```
+- `UseHttpsRedirection`
 
 ### Frontend
+- `VITE_API_URL`
+
+## Flow A: Normal Local Run (without Podman)
+
+### 1) Backend
+From repo root:
+```bash
+dotnet restore backend/FinanceTracker.slnx --configfile NuGet.Config
+dotnet build backend/FinanceTracker.slnx
+dotnet run --project backend/src/FinanceTracker.Api
+```
+
+Backend will run on:
+- `http://localhost:5213`
+- `https://localhost:7010`
+
+### 2) Frontend
+Open a second terminal:
 ```bash
 cd frontend
 npm install
-npm run build
 ```
 
-Run frontend build (choose one):
+Create/update `frontend/.env`:
+```text
+VITE_API_URL=http://localhost:5213
+```
+
+Run frontend:
 ```bash
-npm run preview -- --host 0.0.0.0 --port 4173
+npm run dev
 ```
-or deploy `frontend/dist` using Nginx/Apache/static hosting.
 
-## 3) Podman Deployment
+Open:
+- `http://localhost:5173`
 
-> Frontend flow is same build process; backend runs in container flow.
+## Flow B: Podman Local Run
 
-### Full stack via compose
 From repo root:
 ```bash
 podman compose -f compose.yml up --build -d
 ```
 
-View logs:
-```bash
-podman compose -f compose.yml logs -f
-```
+Open:
+- Frontend: `http://localhost:4173`
+- Backend Swagger: `http://localhost:8080/swagger`
 
-Stop stack:
+Stop:
 ```bash
 podman compose -f compose.yml down
 ```
 
-## 4) Quick Health Checks
-
-- Backend: open `/swagger` on your backend host
-- Frontend: open deployed frontend URL
-- API auth check:
+Logs:
 ```bash
-curl http://<backend-host>/api/auth/login -H "Content-Type: application/json" --data "{\"email\":\"<email>\",\"password\":\"<password>\"}"
+podman compose -f compose.yml logs -f
 ```
+
+## Important
+
+- Do not run both flows together on same machine if ports conflict.
+- For normal flow, frontend must point to `http://localhost:5213`.
+- For podman flow, frontend image uses `VITE_API_URL` from compose build args (default `http://localhost:8080`).
