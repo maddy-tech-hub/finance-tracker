@@ -5,9 +5,9 @@ using FinanceTracker.Application.Common;
 using FinanceTracker.Application.DTOs.Auth;
 using FinanceTracker.Application.Interfaces;
 using FinanceTracker.Domain.Entities;
-using FinanceTracker.Domain.Enums;
 using FinanceTracker.Infrastructure.Persistence;
 using FinanceTracker.Infrastructure.Security;
+using FinanceTracker.Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -17,6 +17,7 @@ public sealed class AuthService(
     FinanceTrackerDbContext db,
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
+    IUserCategoryInitializer userCategoryInitializer,
     IOptions<JwtOptions> jwtOptions) : IAuthService
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
@@ -37,7 +38,7 @@ public sealed class AuthService(
         db.Users.Add(user);
         await db.SaveChangesAsync(cancellationToken);
 
-        await SeedDefaultCategoriesAsync(user.Id, cancellationToken);
+        await userCategoryInitializer.EnsureDefaultCategoriesAsync(user.Id, cancellationToken);
 
         var access = tokenService.GenerateAccessToken(user.Id, user.Email);
         var refresh = tokenService.GenerateRefreshToken();
@@ -59,7 +60,16 @@ public sealed class AuthService(
         var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email, cancellationToken)
             ?? throw new ForbiddenException("Invalid credentials.");
 
-        if (!passwordHasher.Verify(request.Password, user.PasswordHash)) throw new ForbiddenException("Invalid credentials.");
+        var valid = passwordHasher.Verify(request.Password, user.PasswordHash);
+
+        // Backward-compatible upgrade path for any legacy plaintext rows.
+        if (!valid && user.PasswordHash == request.Password)
+        {
+            user.PasswordHash = passwordHasher.Hash(request.Password);
+            valid = true;
+        }
+
+        if (!valid) throw new ForbiddenException("Invalid credentials.");
 
         var access = tokenService.GenerateAccessToken(user.Id, user.Email);
         var refresh = tokenService.GenerateRefreshToken();
@@ -139,22 +149,6 @@ public sealed class AuthService(
 
         reset.User.PasswordHash = passwordHasher.Hash(request.NewPassword);
         reset.UsedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-    }
-
-    private async Task SeedDefaultCategoriesAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var items = new[]
-        {
-            new Category { UserId = userId, Name = "Salary", Type = CategoryType.Income, Icon = "briefcase", ColorHex = "#16A34A", IsDefault = true },
-            new Category { UserId = userId, Name = "Freelance", Type = CategoryType.Income, Icon = "wallet", ColorHex = "#059669", IsDefault = true },
-            new Category { UserId = userId, Name = "Food", Type = CategoryType.Expense, Icon = "utensils", ColorHex = "#EA580C", IsDefault = true },
-            new Category { UserId = userId, Name = "Transport", Type = CategoryType.Expense, Icon = "car", ColorHex = "#2563EB", IsDefault = true },
-            new Category { UserId = userId, Name = "Utilities", Type = CategoryType.Expense, Icon = "bolt", ColorHex = "#7C3AED", IsDefault = true },
-            new Category { UserId = userId, Name = "Shopping", Type = CategoryType.Expense, Icon = "bag", ColorHex = "#DC2626", IsDefault = true }
-        };
-
-        db.Categories.AddRange(items);
         await db.SaveChangesAsync(cancellationToken);
     }
 

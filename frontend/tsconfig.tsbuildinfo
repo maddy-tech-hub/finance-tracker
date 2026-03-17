@@ -58,8 +58,13 @@
         "./src/services/index.ts",
         "./src/store/authstore.ts",
         "./src/store/index.ts",
+        "./src/test/goals-page.test.tsx",
+        "./src/test/recurring-page.test.tsx",
+        "./src/test/settings-page.test.tsx",
+        "./src/test/setup.ts",
         "./src/types/api.ts",
         "./src/types/index.ts",
+        "./src/utils/apierror.ts",
         "./src/utils/format.ts",
         "./src/utils/index.ts"
     ],

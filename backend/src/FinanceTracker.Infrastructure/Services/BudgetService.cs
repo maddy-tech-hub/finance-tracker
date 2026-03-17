@@ -17,7 +17,7 @@ public sealed class BudgetService(FinanceTrackerDbContext db, ICurrentUserServic
             .Include(x => x.Category)
             .ToListAsync(cancellationToken);
 
-        var start = new DateTime(year, month, 1);
+        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = start.AddMonths(1);
 
         var spendByCategory = await db.Transactions

@@ -2,6 +2,7 @@ using FinanceTracker.Application.Common;
 using FinanceTracker.Application.DTOs.Recurring;
 using FinanceTracker.Application.DTOs.Transactions;
 using FinanceTracker.Application.Interfaces;
+using FinanceTracker.Infrastructure.Common;
 using FinanceTracker.Domain.Entities;
 using FinanceTracker.Domain.Enums;
 using FinanceTracker.Infrastructure.Persistence;
@@ -23,6 +24,10 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
     public async Task<RecurringResponse> CreateAsync(RecurringRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
+        var startDateUtc = UtcDateTime.Normalize(request.StartDate);
+        var nextRunDateUtc = UtcDateTime.Normalize(request.NextRunDate);
+        var endDateUtc = UtcDateTime.Normalize(request.EndDate);
+
         var recurring = new RecurringTransaction
         {
             UserId = currentUser.UserId,
@@ -32,9 +37,9 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
             Type = request.Type,
             Frequency = request.Frequency,
             Amount = request.Amount,
-            StartDate = request.StartDate,
-            NextRunDate = request.NextRunDate,
-            EndDate = request.EndDate,
+            StartDate = startDateUtc,
+            NextRunDate = nextRunDateUtc,
+            EndDate = endDateUtc,
             Note = request.Note,
             IsPaused = request.IsPaused
         };
@@ -47,6 +52,10 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
     public async Task<RecurringResponse> UpdateAsync(Guid id, RecurringRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
+        var startDateUtc = UtcDateTime.Normalize(request.StartDate);
+        var nextRunDateUtc = UtcDateTime.Normalize(request.NextRunDate);
+        var endDateUtc = UtcDateTime.Normalize(request.EndDate);
+
         var recurring = await db.RecurringTransactions.FirstOrDefaultAsync(x => x.Id == id && x.UserId == currentUser.UserId, cancellationToken)
             ?? throw new NotFoundException("Recurring transaction not found.");
 
@@ -56,9 +65,9 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
         recurring.Type = request.Type;
         recurring.Frequency = request.Frequency;
         recurring.Amount = request.Amount;
-        recurring.StartDate = request.StartDate;
-        recurring.NextRunDate = request.NextRunDate;
-        recurring.EndDate = request.EndDate;
+        recurring.StartDate = startDateUtc;
+        recurring.NextRunDate = nextRunDateUtc;
+        recurring.EndDate = endDateUtc;
         recurring.Note = request.Note;
         recurring.IsPaused = request.IsPaused;
 

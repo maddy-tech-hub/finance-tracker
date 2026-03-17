@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Common;
 using FinanceTracker.Application.DTOs.Accounts;
 using FinanceTracker.Application.Interfaces;
+using FinanceTracker.Infrastructure.Common;
 using FinanceTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using FinanceTracker.Infrastructure.Persistence;
@@ -76,7 +77,7 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
             DestinationAccountId = destination.Id,
             Amount = request.Amount,
             Type = TransactionType.Transfer,
-            TransactionDate = request.TransferDate,
+            TransactionDate = UtcDateTime.Normalize(request.TransferDate),
             Note = request.Note
         });
 

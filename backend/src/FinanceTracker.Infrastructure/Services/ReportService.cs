@@ -1,6 +1,7 @@
 using System.Text;
 using FinanceTracker.Application.DTOs.Reports;
 using FinanceTracker.Application.Interfaces;
+using FinanceTracker.Infrastructure.Common;
 using FinanceTracker.Domain.Enums;
 using FinanceTracker.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -11,33 +12,51 @@ public sealed class ReportService(FinanceTrackerDbContext db, ICurrentUserServic
 {
     public async Task<IReadOnlyList<CategorySpendReportItem>> CategorySpendAsync(DateTime from, DateTime to, CancellationToken cancellationToken)
     {
-        return await db.Transactions
+        from = UtcDateTime.Normalize(from);
+        to = UtcDateTime.Normalize(to);
+
+        var rows = await db.Transactions
             .Where(x => x.UserId == currentUser.UserId && x.Type == TransactionType.Expense && x.TransactionDate >= from && x.TransactionDate <= to && x.Category != null)
             .GroupBy(x => x.Category!.Name)
-            .Select(g => new CategorySpendReportItem(g.Key, g.Sum(t => t.Amount)))
+            .Select(g => new
+            {
+                CategoryName = g.Key,
+                TotalAmount = g.Sum(t => t.Amount)
+            })
             .OrderByDescending(x => x.TotalAmount)
             .ToListAsync(cancellationToken);
+
+        return rows.Select(x => new CategorySpendReportItem(x.CategoryName, x.TotalAmount)).ToList();
     }
 
     public async Task<IReadOnlyList<IncomeVsExpenseReportItem>> IncomeVsExpenseAsync(DateTime from, DateTime to, CancellationToken cancellationToken)
     {
+        from = UtcDateTime.Normalize(from);
+        to = UtcDateTime.Normalize(to);
+
         var data = await db.Transactions
             .Where(x => x.UserId == currentUser.UserId && x.TransactionDate >= from && x.TransactionDate <= to)
             .GroupBy(x => new { x.TransactionDate.Year, x.TransactionDate.Month })
             .Select(g => new
             {
-                Period = $"{g.Key.Year}-{g.Key.Month:D2}",
+                g.Key.Year,
+                g.Key.Month,
                 Income = g.Where(x => x.Type == TransactionType.Income).Sum(x => x.Amount),
                 Expense = g.Where(x => x.Type == TransactionType.Expense).Sum(x => x.Amount)
             })
-            .OrderBy(x => x.Period)
+            .OrderBy(x => x.Year)
+            .ThenBy(x => x.Month)
             .ToListAsync(cancellationToken);
 
-        return data.Select(x => new IncomeVsExpenseReportItem(x.Period, x.Income, x.Expense)).ToList();
+        return data
+            .Select(x => new IncomeVsExpenseReportItem($"{x.Year}-{x.Month:D2}", x.Income, x.Expense))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<AccountBalanceTrendItem>> AccountBalanceTrendAsync(DateTime from, DateTime to, CancellationToken cancellationToken)
     {
+        to = UtcDateTime.Normalize(to);
+
         var accounts = await db.Accounts
             .Where(x => x.UserId == currentUser.UserId)
             .Select(x => new AccountBalanceTrendItem(x.Name, to, x.Balance))
@@ -55,6 +74,9 @@ public sealed class ReportService(FinanceTrackerDbContext db, ICurrentUserServic
 
     public async Task<string> ExportCsvAsync(DateTime from, DateTime to, CancellationToken cancellationToken)
     {
+        from = UtcDateTime.Normalize(from);
+        to = UtcDateTime.Normalize(to);
+
         var rows = await db.Transactions
             .Where(x => x.UserId == currentUser.UserId && x.TransactionDate >= from && x.TransactionDate <= to)
             .OrderByDescending(x => x.TransactionDate)

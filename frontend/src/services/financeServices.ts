@@ -6,6 +6,7 @@ import type {
   DashboardSummary,
   Goal,
   RecurringItem,
+  RecurringRequest,
   Transaction
 } from "types/api";
 
@@ -48,8 +49,8 @@ export const goalService = {
 
 export const recurringService = {
   list: async () => (await api.get<ApiResponse<RecurringItem[]>>("/recurring")).data.data,
-  create: async (payload: Omit<RecurringItem, "id">) => (await api.post<ApiResponse<RecurringItem>>("/recurring", payload)).data.data,
-  update: async (id: string, payload: Omit<RecurringItem, "id">) => (await api.put<ApiResponse<RecurringItem>>(`/recurring/${id}`, payload)).data.data,
+  create: async (payload: RecurringRequest) => (await api.post<ApiResponse<RecurringItem>>("/recurring", payload)).data.data,
+  update: async (id: string, payload: RecurringRequest) => (await api.put<ApiResponse<RecurringItem>>(`/recurring/${id}`, payload)).data.data,
   remove: async (id: string) => api.delete(`/recurring/${id}`)
 };
 

@@ -2,6 +2,7 @@ using FinanceTracker.Application.Interfaces;
 using FinanceTracker.Infrastructure.HostedServices;
 using FinanceTracker.Infrastructure.Persistence;
 using FinanceTracker.Infrastructure.Security;
+using FinanceTracker.Infrastructure.Seeding;
 using FinanceTracker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -29,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRecurringService, RecurringService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IUserCategoryInitializer, UserCategoryInitializer>();
 
         services.AddHostedService<RecurringTransactionHostedService>();
 

@@ -87,7 +87,7 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 var runMigrationsOnStartup = builder.Configuration.GetValue("RunMigrationsOnStartup", app.Environment.IsDevelopment());
 if (runMigrationsOnStartup)
 {
-    await ApplyMigrationsWithRetryAsync(app.Services, app.Logger, app.Environment.IsDevelopment());
+    await InitializeDatabaseWithRetryAsync(app.Services, app.Logger);
 }
 else
 {
@@ -114,7 +114,7 @@ app.MapControllers();
 
 app.Run();
 
-static async Task ApplyMigrationsWithRetryAsync(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger, bool isDevelopment)
+static async Task InitializeDatabaseWithRetryAsync(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger)
 {
     const int maxAttempts = 10;
     var delay = TimeSpan.FromSeconds(3);

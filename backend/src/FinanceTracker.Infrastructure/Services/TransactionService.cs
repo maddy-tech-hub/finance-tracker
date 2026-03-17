@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Common;
 using FinanceTracker.Application.DTOs.Transactions;
 using FinanceTracker.Application.Interfaces;
+using FinanceTracker.Infrastructure.Common;
 using FinanceTracker.Domain.Entities;
 using FinanceTracker.Domain.Enums;
 using FinanceTracker.Infrastructure.Persistence;
@@ -12,6 +13,9 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
 {
     public async Task<IReadOnlyList<TransactionResponse>> GetAllAsync(DateTime? from, DateTime? to, string? search, Guid? accountId, Guid? categoryId, CancellationToken cancellationToken)
     {
+        from = UtcDateTime.Normalize(from);
+        to = UtcDateTime.Normalize(to);
+
         var query = db.Transactions.AsNoTracking().Where(t => t.UserId == currentUser.UserId);
         if (from.HasValue) query = query.Where(x => x.TransactionDate.Date >= from.Value.Date);
         if (to.HasValue) query = query.Where(x => x.TransactionDate.Date <= to.Value.Date);
@@ -34,6 +38,7 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
     public async Task<TransactionResponse> CreateAsync(TransactionRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
+        var transactionDateUtc = UtcDateTime.Normalize(request.TransactionDate);
 
         await using var trx = await db.Database.BeginTransactionAsync(cancellationToken);
         var entity = new Transaction
@@ -45,7 +50,7 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
             Type = request.Type,
             Amount = request.Amount,
             Note = request.Note,
-            TransactionDate = request.TransactionDate
+            TransactionDate = transactionDateUtc
         };
 
         await ApplyImpactAsync(entity, cancellationToken);
@@ -59,6 +64,8 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
     public async Task<TransactionResponse> UpdateAsync(Guid id, TransactionRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
+        var transactionDateUtc = UtcDateTime.Normalize(request.TransactionDate);
+
         await using var trx = await db.Database.BeginTransactionAsync(cancellationToken);
 
         var existing = await db.Transactions.FirstOrDefaultAsync(x => x.Id == id && x.UserId == currentUser.UserId, cancellationToken)
@@ -70,7 +77,7 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
         existing.CategoryId = request.CategoryId;
         existing.Type = request.Type;
         existing.Amount = request.Amount;
-        existing.TransactionDate = request.TransactionDate;
+        existing.TransactionDate = transactionDateUtc;
         existing.Note = request.Note;
         await ApplyImpactAsync(existing, cancellationToken);
 

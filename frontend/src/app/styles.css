@@ -429,6 +429,12 @@ a {
   gap: 6px;
 }
 
+.field-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .field input,
 .row-form input,
 .row-form select,
@@ -440,6 +446,40 @@ a {
   padding: 10px;
   background: #fff;
   color: var(--text);
+}
+
+.field-input-wrap input {
+  width: 100%;
+}
+
+.field-end-adornment {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.password-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.password-toggle-btn:hover {
+  background: var(--bg-soft);
+  color: var(--primary);
+}
+
+.field-input-wrap.has-end-adornment input {
+  padding-right: 40px;
 }
 
 .field input:focus,

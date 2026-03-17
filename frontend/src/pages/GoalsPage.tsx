@@ -5,6 +5,7 @@ import { PageHeader } from "components/common/PageHeader";
 import { EmptyState, LoadingState } from "components/feedback/States";
 import { useGoals } from "hooks/useFinanceQueries";
 import { goalService } from "services/financeServices";
+import { getApiErrorMessage } from "utils/apiError";
 import { formatCurrency } from "utils/format";
 
 export const GoalsPage = () => {
@@ -16,8 +17,9 @@ export const GoalsPage = () => {
     onSuccess: () => {
       toast.success("Goal created");
       qc.invalidateQueries({ queryKey: ["goals"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
-    onError: () => toast.error("Unable to create goal")
+    onError: (error) => toast.error(getApiErrorMessage(error, "Unable to create goal"))
   });
 
   const contribute = useMutation({
@@ -28,7 +30,7 @@ export const GoalsPage = () => {
       qc.invalidateQueries({ queryKey: ["accounts"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
-    onError: () => toast.error("Contribution failed")
+    onError: (error) => toast.error(getApiErrorMessage(error, "Contribution failed"))
   });
 
   return (
@@ -39,9 +41,9 @@ export const GoalsPage = () => {
           e.preventDefault();
           const form = new FormData(e.currentTarget as HTMLFormElement);
           createGoal.mutate({
-            name: String(form.get("name")),
-            targetAmount: Number(form.get("targetAmount")),
-            currentAmount: Number(form.get("currentAmount")),
+            name: String(form.get("name") || ""),
+            targetAmount: Number(form.get("targetAmount") || 0),
+            currentAmount: Number(form.get("currentAmount") || 0),
             targetDate: String(form.get("targetDate")) || undefined
           });
           (e.currentTarget as HTMLFormElement).reset();

@@ -77,6 +77,20 @@ export type RecurringItem = {
   note?: string;
 };
 
+export type RecurringRequest = {
+  accountId: string;
+  destinationAccountId?: string;
+  categoryId?: string;
+  type: number;
+  frequency: number;
+  amount: number;
+  startDate: string;
+  nextRunDate: string;
+  endDate?: string;
+  note?: string;
+  isPaused: boolean;
+};
+
 export type DashboardSummary = {
   totalBalance: number;
   monthlyIncome: number;

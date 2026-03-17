@@ -5,6 +5,7 @@ import { PageHeader } from "components/common/PageHeader";
 import { EmptyState, LoadingState } from "components/feedback/States";
 import { useBudgets, useCategories } from "hooks/useFinanceQueries";
 import { budgetService } from "services/financeServices";
+import { getApiErrorMessage } from "utils/apiError";
 import { formatCurrency } from "utils/format";
 
 const getStatusTone = (level: string) => {
@@ -26,11 +27,12 @@ export const BudgetsPage = () => {
     onSuccess: () => {
       toast.success("Budget saved");
       qc.invalidateQueries({ queryKey: ["budgets"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
-    onError: () => toast.error("Unable to save budget")
+    onError: (error) => toast.error(getApiErrorMessage(error, "Unable to save budget"))
   });
 
-  const expenseCategories = categories.data?.filter((c) => c.type === 2) ?? [];
+  const expenseCategories = categories.data?.filter((c) => Number(c.type) === 2) ?? [];
 
   return (
     <div className="page-grid">
@@ -39,11 +41,17 @@ export const BudgetsPage = () => {
       <Card title="Create monthly budget" subtitle="One budget per expense category for this month">
         <form className="row-form" onSubmit={(e) => {
           e.preventDefault();
+          if (expenseCategories.length === 0) {
+            toast.error("Create at least one expense category first.");
+            return;
+          }
+
           const form = new FormData(e.currentTarget as HTMLFormElement);
-          createBudget.mutate({ categoryId: String(form.get("categoryId")), month, year, amount: Number(form.get("amount")) });
+          createBudget.mutate({ categoryId: String(form.get("categoryId") || ""), month, year, amount: Number(form.get("amount") || 0) });
           (e.currentTarget as HTMLFormElement).reset();
         }}>
           <select name="categoryId" required>
+            {expenseCategories.length === 0 ? <option value="">No expense categories</option> : null}
             {expenseCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <input name="amount" type="number" min="0.01" step="0.01" placeholder="Monthly limit" required />

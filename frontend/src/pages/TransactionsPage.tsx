@@ -6,18 +6,25 @@ import { PageHeader } from "components/common/PageHeader";
 import { EmptyState } from "components/feedback/States";
 import { useAccounts, useCategories, useTransactions } from "hooks/useFinanceQueries";
 import { transactionService } from "services/financeServices";
+import { getApiErrorMessage } from "utils/apiError";
 import { formatCurrency, formatDate } from "utils/format";
 
 const today = new Date().toISOString().slice(0, 10);
 
 export const TransactionsPage = () => {
   const [search, setSearch] = useState("");
+  const [txType, setTxType] = useState(2);
   const transactions = useTransactions(search ? { search } : undefined);
   const accounts = useAccounts();
   const categories = useCategories();
   const qc = useQueryClient();
 
-  const categoryOptions = useMemo(() => categories.data?.filter((c) => c.type === 2) ?? [], [categories.data]);
+  const categoryOptions = useMemo(() => {
+    const all = categories.data ?? [];
+    const byType = all.filter((c) => Number(c.type) === txType);
+    return byType.length > 0 ? byType : all;
+  }, [categories.data, txType]);
+
   const canSubmit = (accounts.data?.length ?? 0) > 0 && categoryOptions.length > 0;
 
   const mutation = useMutation({
@@ -27,9 +34,10 @@ export const TransactionsPage = () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["budgets"] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
     },
-    onError: () => {
-      toast.error("Unable to add transaction");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Unable to add transaction"));
     }
   });
 
@@ -51,20 +59,22 @@ export const TransactionsPage = () => {
           onSubmit={(e) => {
             e.preventDefault();
             if (!canSubmit) {
-              toast.error("Create at least one account and expense category first.");
+              toast.error("Create at least one account and category first.");
               return;
             }
+
             const form = new FormData(e.currentTarget as HTMLFormElement);
             mutation.mutate({
-              accountId: String(form.get("accountId")),
+              accountId: String(form.get("accountId") || ""),
               categoryId: form.get("categoryId") ? String(form.get("categoryId")) : undefined,
               destinationAccountId: undefined,
-              type: Number(form.get("type")),
-              amount: Number(form.get("amount")),
-              transactionDate: String(form.get("transactionDate")),
+              type: Number(form.get("type") || txType),
+              amount: Number(form.get("amount") || 0),
+              transactionDate: String(form.get("transactionDate") || ""),
               note: String(form.get("note") || "")
             });
             (e.currentTarget as HTMLFormElement).reset();
+            setTxType(2);
           }}
         >
           <select name="accountId" required aria-label="Account">
@@ -77,7 +87,12 @@ export const TransactionsPage = () => {
               <option value={c.id} key={c.id}>{c.name}</option>
             ))}
           </select>
-          <select name="type" defaultValue={2} aria-label="Type">
+          <select
+            name="type"
+            value={txType}
+            onChange={(e) => setTxType(Number(e.target.value))}
+            aria-label="Type"
+          >
             <option value={1}>Income</option>
             <option value={2}>Expense</option>
           </select>

@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Common;
 using FinanceTracker.Application.DTOs.Goals;
 using FinanceTracker.Application.Interfaces;
+using FinanceTracker.Infrastructure.Common;
 using FinanceTracker.Domain.Entities;
 using FinanceTracker.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,8 @@ public sealed class GoalService(FinanceTrackerDbContext db, ICurrentUserService 
     public async Task<GoalResponse> CreateAsync(GoalRequest request, CancellationToken cancellationToken)
     {
         ValidateGoal(request);
+        var targetDateUtc = UtcDateTime.Normalize(request.TargetDate);
+
         var goal = new SavingsGoal
         {
             UserId = currentUser.UserId,
@@ -28,7 +31,7 @@ public sealed class GoalService(FinanceTrackerDbContext db, ICurrentUserService 
             TargetAmount = request.TargetAmount,
             CurrentAmount = request.CurrentAmount,
             LinkedAccountId = request.LinkedAccountId,
-            TargetDate = request.TargetDate
+            TargetDate = targetDateUtc
         };
 
         db.Goals.Add(goal);
@@ -39,13 +42,15 @@ public sealed class GoalService(FinanceTrackerDbContext db, ICurrentUserService 
     public async Task<GoalResponse> UpdateAsync(Guid id, GoalRequest request, CancellationToken cancellationToken)
     {
         ValidateGoal(request);
+        var targetDateUtc = UtcDateTime.Normalize(request.TargetDate);
+
         var goal = await db.Goals.FirstOrDefaultAsync(x => x.Id == id && x.UserId == currentUser.UserId, cancellationToken)
             ?? throw new NotFoundException("Goal not found.");
 
         goal.Name = request.Name.Trim();
         goal.TargetAmount = request.TargetAmount;
         goal.CurrentAmount = request.CurrentAmount;
-        goal.TargetDate = request.TargetDate;
+        goal.TargetDate = targetDateUtc;
         goal.LinkedAccountId = request.LinkedAccountId;
 
         await db.SaveChangesAsync(cancellationToken);
