@@ -58,10 +58,10 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     }
 
     [HttpPost("forgot-password")]
-    public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<ForgotPasswordResponse>>> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
-        await authService.ForgotPasswordAsync(request, cancellationToken);
-        return Ok(ApiResponse<object>.Ok(new { }, "If the email exists, a reset token is issued."));
+        var result = await authService.ForgotPasswordAsync(request, cancellationToken);
+        return Ok(ApiResponse<ForgotPasswordResponse>.Ok(result, "Reset token generated"));
     }
 
     [HttpPost("reset-password")]

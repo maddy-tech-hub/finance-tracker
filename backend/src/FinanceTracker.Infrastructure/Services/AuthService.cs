@@ -166,21 +166,24 @@ public sealed class AuthService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    public async Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         var email = request.Email.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email, cancellationToken);
-        if (user is null) return;
+        var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email, cancellationToken)
+            ?? throw new AppValidationException("No account found for this email.");
 
         var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(30);
+
         db.PasswordResetTokens.Add(new PasswordResetToken
         {
             UserId = user.Id,
             Token = token,
-            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(30)
+            ExpiresAtUtc = expiresAtUtc
         });
 
         await db.SaveChangesAsync(cancellationToken);
+        return new ForgotPasswordResponse(token, expiresAtUtc);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken)

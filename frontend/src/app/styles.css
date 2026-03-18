@@ -930,6 +930,40 @@ a {
   font-size: 14px;
 }
 
+.auth-token-box {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  display: grid;
+  gap: 8px;
+}
+
+.auth-token-box p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.auth-token-box code {
+  font-size: 12px;
+  background: #eaf0ff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  word-break: break-all;
+}
+
+.auth-token-box small {
+  color: var(--muted);
+}
+
+.muted-text {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .profile-page {
   gap: 14px;
 }

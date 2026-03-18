@@ -11,6 +11,8 @@ export const authService = {
     api.put<ApiResponse<UserProfile>>("/auth/me", payload),
   changePassword: (payload: { currentPassword: string; newPassword: string }) =>
     api.post<ApiResponse<object>>("/auth/change-password", payload),
-  forgotPassword: (payload: { email: string }) => api.post("/auth/forgot-password", payload),
-  resetPassword: (payload: { token: string; newPassword: string }) => api.post("/auth/reset-password", payload)
+  forgotPassword: (payload: { email: string }) =>
+    api.post<ApiResponse<{ token: string; expiresAtUtc: string }>>("/auth/forgot-password", payload),
+  resetPassword: (payload: { token: string; newPassword: string }) =>
+    api.post<ApiResponse<object>>("/auth/reset-password", payload)
 };
