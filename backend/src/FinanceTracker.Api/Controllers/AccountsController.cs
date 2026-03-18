@@ -23,6 +23,13 @@ public sealed class AccountsController(IAccountService accountService) : Control
     public async Task<ActionResult<ApiResponse<AccountResponse>>> Update(Guid id, [FromBody] AccountRequest request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<AccountResponse>.Ok(await accountService.UpdateAsync(id, request, cancellationToken), "Updated"));
 
+    [HttpDelete("{id:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await accountService.DeleteAsync(id, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Deleted"));
+    }
+
     [HttpPost("transfer")]
     public async Task<ActionResult<ApiResponse<object>>> Transfer([FromBody] AccountTransferRequest request, CancellationToken cancellationToken)
     {

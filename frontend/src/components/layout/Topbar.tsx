@@ -56,6 +56,8 @@ export const Topbar = ({ onOpenNav }: TopbarProps) => {
 
   const categoryOptions = useMemo(() => categories.data?.filter((c) => c.type === 2) ?? [], [categories.data]);
   const canSubmit = (accounts.data?.length ?? 0) > 0 && categoryOptions.length > 0;
+  const hasAccounts = (accounts.data?.length ?? 0) > 0;
+  const hasExpenseCategories = categoryOptions.length > 0;
 
   const resultItems = useMemo<SearchItem[]>(() => {
     if (!searchEnabled) return [];
@@ -247,72 +249,96 @@ export const Topbar = ({ onOpenNav }: TopbarProps) => {
               </button>
             </div>
 
-            <form
-              className="quick-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!canSubmit) {
-                  toast.error("Create at least one account and expense category first.");
-                  return;
-                }
-                const form = new FormData(event.currentTarget as HTMLFormElement);
-                addTransaction.mutate({
-                  accountId: String(form.get("accountId")),
-                  destinationAccountId: undefined,
-                  categoryId: String(form.get("categoryId")),
-                  type: Number(form.get("type")),
-                  amount: Number(form.get("amount")),
-                  transactionDate: String(form.get("transactionDate")),
-                  note: String(form.get("note") || "")
-                });
-                (event.currentTarget as HTMLFormElement).reset();
-              }}
-            >
-              <label>
-                Account
-                <select name="accountId" required>
-                  {accounts.data?.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
-              </label>
+            {!canSubmit ? (
+              <div className="recurring-setup-hint" role="status" aria-live="polite">
+                <p>
+                  {!hasAccounts && !hasExpenseCategories
+                    ? "Add at least one account and one expense category to use quick add."
+                    : !hasAccounts
+                      ? "Add at least one account to use quick add."
+                      : "Add an expense category to use quick add."}
+                </p>
+                <div className="recurring-setup-actions">
+                  {!hasAccounts ? (
+                    <Link className="ghost-btn recurring-setup-action" to="/accounts" onClick={() => setOpen(false)}>
+                      Go to accounts
+                    </Link>
+                  ) : null}
+                  {!hasExpenseCategories ? (
+                    <Link className="ghost-btn recurring-setup-action" to="/settings" onClick={() => setOpen(false)}>
+                      Go to category settings
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <form
+                className="quick-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!canSubmit) {
+                    toast.error("Create at least one account and expense category first.");
+                    return;
+                  }
+                  const form = new FormData(event.currentTarget as HTMLFormElement);
+                  addTransaction.mutate({
+                    accountId: String(form.get("accountId")),
+                    destinationAccountId: undefined,
+                    categoryId: String(form.get("categoryId")),
+                    type: Number(form.get("type")),
+                    amount: Number(form.get("amount")),
+                    transactionDate: String(form.get("transactionDate")),
+                    note: String(form.get("note") || "")
+                  });
+                  (event.currentTarget as HTMLFormElement).reset();
+                }}
+              >
+                <label>
+                  Account
+                  <select name="accountId" required>
+                    {accounts.data?.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                </label>
 
-              <label>
-                Category
-                <select name="categoryId" required>
-                  {categoryOptions.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
+                <label>
+                  Category
+                  <select name="categoryId" required>
+                    {categoryOptions.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
 
-              <label>
-                Type
-                <select name="type" defaultValue={2}>
-                  <option value={1}>Income</option>
-                  <option value={2}>Expense</option>
-                </select>
-              </label>
+                <label>
+                  Type
+                  <select name="type" defaultValue={2}>
+                    <option value={1}>Income</option>
+                    <option value={2}>Expense</option>
+                  </select>
+                </label>
 
-              <label>
-                Amount
-                <input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required autoFocus />
-              </label>
+                <label>
+                  Amount
+                  <input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required autoFocus />
+                </label>
 
-              <label>
-                Date
-                <input name="transactionDate" type="date" defaultValue={today} required />
-              </label>
+                <label>
+                  Date
+                  <input name="transactionDate" type="date" defaultValue={today} required />
+                </label>
 
-              <label className="wide">
-                Note
-                <input name="note" placeholder="Optional note" />
-              </label>
+                <label className="wide">
+                  Note
+                  <input name="note" placeholder="Optional note" />
+                </label>
 
-              <button className="primary-btn wide" type="submit" disabled={addTransaction.isPending || !canSubmit}>
-                {addTransaction.isPending ? "Saving..." : "Save Transaction"}
-              </button>
-            </form>
+                <button className="primary-btn wide" type="submit" disabled={addTransaction.isPending || !canSubmit}>
+                  {addTransaction.isPending ? "Saving..." : "Save Transaction"}
+                </button>
+              </form>
+            )}
           </section>
         </div>
       ) : null}

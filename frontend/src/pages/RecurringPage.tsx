@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FiEdit2, FiPauseCircle, FiPlayCircle, FiTrash2, FiX } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 import { Card } from "components/common/Card";
 import { PageHeader } from "components/common/PageHeader";
 import { EmptyState, LoadingState } from "components/feedback/States";
@@ -83,104 +84,133 @@ export const RecurringPage = () => {
   }, [categories.data, editType]);
 
   const isTransfer = txType === 3;
-  const canSubmit = (accounts.data?.length ?? 0) > 0 && (isTransfer || categoryOptions.length > 0);
+  const accountOptions = accounts.data ?? [];
+  const hasAccounts = accountOptions.length > 0;
+  const hasCategoriesForType = categoryOptions.length > 0;
+  const canSubmit = hasAccounts && (isTransfer || hasCategoriesForType);
+  const showSetupHint = !canSubmit;
 
   return (
     <div className="page-grid">
       <PageHeader title="Recurring" subtitle="Keep recurring bills and subscriptions visible before they hit your balance." />
       <Card title="Schedule recurring payment" subtitle="Daily, weekly, monthly, or yearly automation">
-        <form
-          className="row-form recurring-create-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!canSubmit) {
-              toast.error("Add at least one account and category first.");
-              return;
-            }
+        {showSetupHint ? (
+          <div className="recurring-setup-hint" role="status" aria-live="polite">
+            <p>
+              {!hasAccounts && !isTransfer && !hasCategoriesForType
+                ? "Add at least one account and one category to start recurring automation."
+                : !hasAccounts
+                  ? "Add at least one account to start recurring automation."
+                  : "Add a category for the selected transaction type to continue."}
+            </p>
+            <div className="recurring-setup-actions">
+              {!hasAccounts ? (
+                <Link className="ghost-btn recurring-setup-action" to="/accounts">
+                  Go to accounts
+                </Link>
+              ) : null}
+              {!isTransfer && !hasCategoriesForType ? (
+                <Link className="ghost-btn recurring-setup-action" to="/settings">
+                  Go to category settings
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        {canSubmit ? (
+          <form
+            className="row-form recurring-create-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!canSubmit) {
+                toast.error("Add at least one account and category first.");
+                return;
+              }
 
-            const form = new FormData(e.currentTarget as HTMLFormElement);
-            const nextRunDate = String(form.get("nextRunDate") || "");
-            const accountId = String(form.get("accountId") || "");
-            const destinationAccountId = String(form.get("destinationAccountId") || "");
-            const categoryId = String(form.get("categoryId") || "");
+              const form = new FormData(e.currentTarget as HTMLFormElement);
+              const nextRunDate = String(form.get("nextRunDate") || "");
+              const accountId = String(form.get("accountId") || "");
+              const destinationAccountId = String(form.get("destinationAccountId") || "");
+              const categoryId = String(form.get("categoryId") || "");
 
-            createRecurring.mutate({
-              accountId,
-              destinationAccountId: isTransfer && destinationAccountId ? destinationAccountId : undefined,
-              categoryId: !isTransfer && categoryId ? categoryId : undefined,
-              type: Number(form.get("type")),
-              frequency: Number(form.get("frequency")),
-              amount: Number(form.get("amount")),
-              startDate: nextRunDate,
-              nextRunDate,
-              endDate: String(form.get("endDate") || "") || undefined,
-              note: String(form.get("note") || ""),
-              isPaused: false
-            });
-            (e.currentTarget as HTMLFormElement).reset();
-            setTxType(2);
-          }}
-        >
-          <label className="field recurring-field recurring-from">
-            <span>From account</span>
-            <select name="accountId" required>
-              {accounts.data?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-          </label>
-
-          {isTransfer ? (
-            <label className="field recurring-field recurring-category">
-              <span>To account</span>
-              <select name="destinationAccountId" required>
-                <option value="">Select destination account</option>
-                {accounts.data?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              createRecurring.mutate({
+                accountId,
+                destinationAccountId: isTransfer && destinationAccountId ? destinationAccountId : undefined,
+                categoryId: !isTransfer && categoryId ? categoryId : undefined,
+                type: Number(form.get("type")),
+                frequency: Number(form.get("frequency")),
+                amount: Number(form.get("amount")),
+                startDate: nextRunDate,
+                nextRunDate,
+                endDate: String(form.get("endDate") || "") || undefined,
+                note: String(form.get("note") || ""),
+                isPaused: false
+              });
+              (e.currentTarget as HTMLFormElement).reset();
+              setTxType(2);
+            }}
+          >
+            <label className="field recurring-field recurring-from">
+              <span>From account</span>
+              <select name="accountId" required>
+                {accountOptions.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </label>
-          ) : (
-            <label className="field recurring-field recurring-category">
-              <span>Category</span>
-              <select name="categoryId" required disabled={categoryOptions.length === 0}>
-                {categoryOptions.length === 0 ? <option value="">No categories available</option> : categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+
+            {isTransfer ? (
+              <label className="field recurring-field recurring-category">
+                <span>To account</span>
+                <select name="destinationAccountId" required disabled={accountOptions.length < 2}>
+                  <option value="">{accountOptions.length < 2 ? "Add one more account" : "Select destination account"}</option>
+                  {accountOptions.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </label>
+            ) : (
+              <label className="field recurring-field recurring-category">
+                <span>Category</span>
+                <select name="categoryId" required disabled={categoryOptions.length === 0}>
+                  {categoryOptions.length === 0 ? <option value="">No categories available</option> : categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+            )}
+
+            <label className="field recurring-field recurring-type">
+              <span>Transaction type</span>
+              <select name="type" value={txType} onChange={(e) => setTxType(Number(e.target.value))}>
+                <option value={1}>Income</option>
+                <option value={2}>Expense</option>
+                <option value={3}>Transfer</option>
               </select>
             </label>
-          )}
 
-          <label className="field recurring-field recurring-type">
-            <span>Transaction type</span>
-            <select name="type" value={txType} onChange={(e) => setTxType(Number(e.target.value))}>
-              <option value={1}>Income</option>
-              <option value={2}>Expense</option>
-              <option value={3}>Transfer</option>
-            </select>
-          </label>
+            <label className="field recurring-field recurring-frequency">
+              <span>Repeat every</span>
+              <select name="frequency">
+                <option value={1}>Daily</option>
+                <option value={2}>Weekly</option>
+                <option value={3}>Monthly</option>
+                <option value={4}>Yearly</option>
+              </select>
+            </label>
 
-          <label className="field recurring-field recurring-frequency">
-            <span>Repeat every</span>
-            <select name="frequency">
-              <option value={1}>Daily</option>
-              <option value={2}>Weekly</option>
-              <option value={3}>Monthly</option>
-              <option value={4}>Yearly</option>
-            </select>
-          </label>
+            <label className="field recurring-field recurring-amount">
+              <span>Amount</span>
+              <input name="amount" type="number" min="0.01" step="0.01" placeholder="e.g., 1500" required />
+            </label>
+            <label className="field recurring-field recurring-date">
+              <span>First run date</span>
+              <input name="nextRunDate" type="date" defaultValue={today} required />
+            </label>
+            <label className="field recurring-field recurring-note-field">
+              <span>Description (optional)</span>
+              <input name="note" placeholder="e.g., Netflix, Rent, Salary" />
+            </label>
 
-          <label className="field recurring-field recurring-amount">
-            <span>Amount</span>
-            <input name="amount" type="number" min="0.01" step="0.01" placeholder="e.g., 1500" required />
-          </label>
-          <label className="field recurring-field recurring-date">
-            <span>First run date</span>
-            <input name="nextRunDate" type="date" defaultValue={today} required />
-          </label>
-          <label className="field recurring-field recurring-note-field">
-            <span>Description (optional)</span>
-            <input name="note" placeholder="e.g., Netflix, Rent, Salary" />
-          </label>
-
-          <button className="primary-btn recurring-submit-btn" type="submit" disabled={createRecurring.isPending || !canSubmit}>
-            {createRecurring.isPending ? "Saving..." : "Create recurring"}
-          </button>
-        </form>
+            <button className="primary-btn recurring-submit-btn" type="submit" disabled={createRecurring.isPending || !canSubmit}>
+              {createRecurring.isPending ? "Saving..." : "Create recurring"}
+            </button>
+          </form>
+        ) : null}
       </Card>
 
       <Card title="Upcoming recurring items" subtitle="Prioritized by next due date">

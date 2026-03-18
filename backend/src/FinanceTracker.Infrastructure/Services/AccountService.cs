@@ -23,6 +23,13 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
     public async Task<AccountResponse> CreateAsync(AccountRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
+        var normalizedName = request.Name.Trim().ToLowerInvariant();
+        var alreadyExists = await db.Accounts.AnyAsync(
+            x => x.UserId == currentUser.UserId && x.Name.ToLower() == normalizedName,
+            cancellationToken);
+        if (alreadyExists)
+            throw new AppValidationException("Account name already exists. Use a unique name.");
+
         var account = new Account
         {
             UserId = currentUser.UserId,
@@ -42,6 +49,12 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
         Validate(request);
         var account = await db.Accounts.FirstOrDefaultAsync(x => x.Id == id && x.UserId == currentUser.UserId, cancellationToken)
             ?? throw new NotFoundException("Account not found.");
+        var normalizedName = request.Name.Trim().ToLowerInvariant();
+        var duplicateName = await db.Accounts.AnyAsync(
+            x => x.UserId == currentUser.UserId && x.Id != id && x.Name.ToLower() == normalizedName,
+            cancellationToken);
+        if (duplicateName)
+            throw new AppValidationException("Account name already exists. Use a unique name.");
 
         account.Name = request.Name.Trim();
         account.Type = request.Type;
@@ -50,6 +63,27 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
 
         await db.SaveChangesAsync(cancellationToken);
         return new AccountResponse(account.Id, account.Name, account.Type, account.Currency, account.Balance, account.IsArchived);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var account = await db.Accounts.FirstOrDefaultAsync(x => x.Id == id && x.UserId == currentUser.UserId, cancellationToken)
+            ?? throw new NotFoundException("Account not found.");
+
+        var usedInTransactions = await db.Transactions.AnyAsync(
+            x => x.UserId == currentUser.UserId && (x.AccountId == id || x.DestinationAccountId == id),
+            cancellationToken);
+        if (usedInTransactions)
+            throw new AppValidationException("Account has transaction history. Please move transactions before deleting.");
+
+        var usedInRecurring = await db.RecurringTransactions.AnyAsync(
+            x => x.UserId == currentUser.UserId && (x.AccountId == id || x.DestinationAccountId == id),
+            cancellationToken);
+        if (usedInRecurring)
+            throw new AppValidationException("Account is used in recurring items. Delete or edit recurring entries first.");
+
+        db.Accounts.Remove(account);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task TransferAsync(AccountTransferRequest request, CancellationToken cancellationToken)

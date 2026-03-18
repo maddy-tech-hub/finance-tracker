@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Card } from "components/common/Card";
 import { PageHeader } from "components/common/PageHeader";
@@ -29,6 +29,8 @@ export const TransactionsPage = () => {
   }, [categories.data, txType]);
 
   const canSubmit = (accounts.data?.length ?? 0) > 0 && categoryOptions.length > 0;
+  const hasAccounts = (accounts.data?.length ?? 0) > 0;
+  const hasCategories = categoryOptions.length > 0;
 
   const mutation = useMutation({
     mutationFn: transactionService.create,
@@ -61,55 +63,79 @@ export const TransactionsPage = () => {
       <PageHeader title="Transactions" subtitle="Record and review every income, expense, and transfer" />
 
       <Card title="Quick add transaction" subtitle="Designed for speed: minimal fields, instant dashboard updates" className="quick-add-card">
-        <form
-          className="row-form compact"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!canSubmit) {
-              toast.error("Create at least one account and category first.");
-              return;
-            }
+        {!canSubmit ? (
+          <div className="recurring-setup-hint" role="status" aria-live="polite">
+            <p>
+              {!hasAccounts && !hasCategories
+                ? "Add at least one account and one category to start adding transactions."
+                : !hasAccounts
+                  ? "Add at least one account to start adding transactions."
+                  : "Add a category for the selected type to continue."}
+            </p>
+            <div className="recurring-setup-actions">
+              {!hasAccounts ? (
+                <Link className="ghost-btn recurring-setup-action" to="/accounts">
+                  Go to accounts
+                </Link>
+              ) : null}
+              {!hasCategories ? (
+                <Link className="ghost-btn recurring-setup-action" to="/settings">
+                  Go to category settings
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <form
+            className="row-form compact"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!canSubmit) {
+                toast.error("Create at least one account and category first.");
+                return;
+              }
 
-            const form = new FormData(e.currentTarget as HTMLFormElement);
-            mutation.mutate({
-              accountId: String(form.get("accountId") || ""),
-              categoryId: form.get("categoryId") ? String(form.get("categoryId")) : undefined,
-              destinationAccountId: undefined,
-              type: Number(form.get("type") || txType),
-              amount: Number(form.get("amount") || 0),
-              transactionDate: String(form.get("transactionDate") || ""),
-              note: String(form.get("note") || "")
-            });
-            (e.currentTarget as HTMLFormElement).reset();
-            setTxType(2);
-          }}
-        >
-          <select name="accountId" required aria-label="Account">
-            {accounts.data?.map((a) => (
-              <option value={a.id} key={a.id}>{a.name}</option>
-            ))}
-          </select>
-          <select name="categoryId" aria-label="Category" required>
-            {categoryOptions.map((c) => (
-              <option value={c.id} key={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <select
-            name="type"
-            value={txType}
-            onChange={(e) => setTxType(Number(e.target.value))}
-            aria-label="Type"
+              const form = new FormData(e.currentTarget as HTMLFormElement);
+              mutation.mutate({
+                accountId: String(form.get("accountId") || ""),
+                categoryId: form.get("categoryId") ? String(form.get("categoryId")) : undefined,
+                destinationAccountId: undefined,
+                type: Number(form.get("type") || txType),
+                amount: Number(form.get("amount") || 0),
+                transactionDate: String(form.get("transactionDate") || ""),
+                note: String(form.get("note") || "")
+              });
+              (e.currentTarget as HTMLFormElement).reset();
+              setTxType(2);
+            }}
           >
-            <option value={1}>Income</option>
-            <option value={2}>Expense</option>
-          </select>
-          <input name="amount" type="number" min="0.01" step="0.01" required placeholder="Amount" aria-label="Amount" />
-          <input name="transactionDate" type="date" defaultValue={today} required aria-label="Date" />
-          <input name="note" placeholder="Optional note" aria-label="Note" />
-          <button className="primary-btn" type="submit" disabled={mutation.isPending || !canSubmit}>
-            {mutation.isPending ? "Adding..." : "Add"}
-          </button>
-        </form>
+            <select name="accountId" required aria-label="Account">
+              {accounts.data?.map((a) => (
+                <option value={a.id} key={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <select name="categoryId" aria-label="Category" required>
+              {categoryOptions.map((c) => (
+                <option value={c.id} key={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <select
+              name="type"
+              value={txType}
+              onChange={(e) => setTxType(Number(e.target.value))}
+              aria-label="Type"
+            >
+              <option value={1}>Income</option>
+              <option value={2}>Expense</option>
+            </select>
+            <input name="amount" type="number" min="0.01" step="0.01" required placeholder="Amount" aria-label="Amount" />
+            <input name="transactionDate" type="date" defaultValue={today} required aria-label="Date" />
+            <input name="note" placeholder="Optional note" aria-label="Note" />
+            <button className="primary-btn" type="submit" disabled={mutation.isPending || !canSubmit}>
+              {mutation.isPending ? "Adding..." : "Add"}
+            </button>
+          </form>
+        )}
       </Card>
 
       <Card title="All transactions" subtitle="Search and scan across your complete history">

@@ -686,6 +686,35 @@ a {
   align-items: end;
 }
 
+.recurring-setup-hint {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fbff;
+  display: grid;
+  gap: 8px;
+}
+
+.recurring-setup-hint p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.recurring-setup-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recurring-setup-action {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .recurring-create-form .recurring-field {
   gap: 4px;
   margin: 0;
@@ -750,6 +779,10 @@ a {
 }
 
 .settings-category-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.accounts-table tbody tr:last-child td {
   border-bottom: none;
 }
 
