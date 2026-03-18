@@ -1,6 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiBell, FiChevronRight, FiClock, FiCreditCard, FiMenu, FiPlus, FiSearch, FiTag, FiTarget, FiUser, FiX } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAccounts, useCategories } from "hooks/useFinanceQueries";
@@ -24,11 +24,13 @@ type TopbarProps = {
 
 export const Topbar = ({ onOpenNav }: TopbarProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const fullName = useAuthStore((s) => s.fullName) ?? "User";
   const shortName = fullName.split(" ")[0] ?? "User";
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const blurTimeoutRef = useRef<number | null>(null);
   const qc = useQueryClient();
   const accounts = useAccounts();
   const categories = useCategories();
@@ -106,8 +108,20 @@ export const Topbar = ({ onOpenNav }: TopbarProps) => {
 
   const goToResult = (item: SearchItem) => {
     navigate(item.to);
+    setSearch("");
     setShowResults(false);
   };
+
+  useEffect(() => {
+    setShowResults(false);
+    setSearch("");
+  }, [location.pathname]);
+
+  useEffect(() => () => {
+    if (blurTimeoutRef.current) {
+      window.clearTimeout(blurTimeoutRef.current);
+    }
+  }, []);
 
   const addTransaction = useMutation({
     mutationFn: transactionService.create,
@@ -135,12 +149,26 @@ export const Topbar = ({ onOpenNav }: TopbarProps) => {
           <div className="search-box search-shell" role="search">
             <FiSearch />
             <input
-              placeholder="Search transactions, goals, recurring, categories"
-              aria-label="Search"
-              value={search}
-              onFocus={() => setShowResults(true)}
-              onBlur={() => setTimeout(() => setShowResults(false), 120)}
-              onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search transactions, goals, recurring, categories"
+            aria-label="Search"
+            value={search}
+            onFocus={() => {
+              if (blurTimeoutRef.current) {
+                window.clearTimeout(blurTimeoutRef.current);
+                blurTimeoutRef.current = null;
+              }
+              setShowResults(true);
+            }}
+            onBlur={() => {
+              blurTimeoutRef.current = window.setTimeout(() => {
+                setShowResults(false);
+              }, 120);
+            }}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSearch(value);
+              setShowResults(value.trim().length >= 2);
+            }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && resultItems.length > 0) {
                   e.preventDefault();
