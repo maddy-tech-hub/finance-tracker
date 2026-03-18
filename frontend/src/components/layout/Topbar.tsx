@@ -191,10 +191,13 @@ export const Topbar = ({ onOpenNav }: TopbarProps) => {
           <button className="ghost-btn icon-btn" type="button" aria-label="Notifications">
             <FiBell />
           </button>
-          <Link className="profile-pill profile-entry" to="/user-profile" aria-label="Open user profile">
+          <Link className="profile-pill profile-entry desktop-profile-pill" to="/user-profile" aria-label="Open user profile">
             <span className="profile-icon"><FiUser /></span>
-            <span>{shortName}</span>
+            <span className="profile-name">{shortName}</span>
             <FiChevronRight size={14} />
+          </Link>
+          <Link className="ghost-btn icon-btn mobile-profile-btn" to="/user-profile" aria-label="Open user profile">
+            <FiUser />
           </Link>
         </div>
       </header>
