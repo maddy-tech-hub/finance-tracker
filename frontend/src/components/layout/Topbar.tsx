@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { FiBell, FiPlus, FiSearch, FiX } from "react-icons/fi";
+import { FiBell, FiChevronRight, FiPlus, FiSearch, FiUser, FiX } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAccounts, useCategories } from "hooks/useFinanceQueries";
 import { transactionService } from "services/financeServices";
@@ -11,6 +11,7 @@ const today = new Date().toISOString().slice(0, 10);
 
 export const Topbar = () => {
   const fullName = useAuthStore((s) => s.fullName) ?? "User";
+  const shortName = fullName.split(" ")[0] ?? "User";
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const accounts = useAccounts();
@@ -47,7 +48,11 @@ export const Topbar = () => {
           <button className="ghost-btn icon-btn" type="button" aria-label="Notifications">
             <FiBell />
           </button>
-          <Link className="profile-pill" to="/user-profile" aria-label="Profile name">{fullName}</Link>
+          <Link className="profile-pill profile-entry" to="/user-profile" aria-label="Open user profile">
+            <span className="profile-icon"><FiUser /></span>
+            <span>{shortName}</span>
+            <FiChevronRight size={14} />
+          </Link>
         </div>
       </header>
 

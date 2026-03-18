@@ -127,7 +127,7 @@ public sealed class AuthService(
             .FirstOrDefaultAsync(x => x.Id == currentUser.UserId, cancellationToken)
             ?? throw new ForbiddenException("User context is invalid.");
 
-        return new UserProfileResponse(user.Id, user.Email, user.FirstName, user.LastName, $"{user.FirstName} {user.LastName}");
+        return new UserProfileResponse(user.Id, user.Email, user.FirstName, user.LastName, $"{user.FirstName} {user.LastName}", user.CreatedAtUtc);
     }
 
     public async Task<UserProfileResponse> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken)
@@ -146,7 +146,7 @@ public sealed class AuthService(
 
         await db.SaveChangesAsync(cancellationToken);
 
-        return new UserProfileResponse(user.Id, user.Email, user.FirstName, user.LastName, $"{user.FirstName} {user.LastName}");
+        return new UserProfileResponse(user.Id, user.Email, user.FirstName, user.LastName, $"{user.FirstName} {user.LastName}", user.CreatedAtUtc);
     }
 
     public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken)

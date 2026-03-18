@@ -19,6 +19,7 @@ export type UserProfile = {
   firstName: string;
   lastName: string;
   fullName: string;
+  memberSinceUtc: string;
 };
 
 export type Account = {

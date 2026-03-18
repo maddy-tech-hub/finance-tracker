@@ -176,6 +176,23 @@ a {
   color: var(--text);
 }
 
+.profile-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
 .topbar-add {
   display: inline-flex;
   align-items: center;
@@ -650,6 +667,119 @@ a {
   font-size: 14px;
 }
 
+.profile-page {
+  gap: 14px;
+}
+
+.profile-hero {
+  border-radius: 18px;
+  padding: 20px;
+  color: #fff;
+  background: linear-gradient(140deg, #3f63d5, #5d4eb8 55%, #5f43ad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.profile-hero h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 2.5vw, 2.1rem);
+}
+
+.profile-hero p {
+  margin: 8px 0 0;
+  color: #e7ecff;
+}
+
+.profile-hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profile-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-summary-card {
+  background: linear-gradient(165deg, #ffffff, #f7f9ff);
+}
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.profile-summary h2 {
+  margin: 0;
+}
+
+.profile-summary p {
+  margin: 4px 0 8px;
+  color: var(--muted);
+}
+
+.profile-avatar {
+  width: 86px;
+  height: 86px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(140deg, #4b67da, #6a46b7);
+  box-shadow: 0 10px 20px rgba(78, 86, 177, 0.25);
+}
+
+.profile-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-meta-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-meta-card > span {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-meta-card small {
+  color: var(--muted);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.profile-meta-card strong {
+  font-size: 0.98rem;
+  line-break: anywhere;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -889,6 +1019,15 @@ a {
 
   .goal-actions {
     flex-direction: column;
+  }
+
+  .profile-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-hero {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

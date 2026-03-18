@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { FiActivity, FiCreditCard, FiDollarSign, FiHome, FiPieChart, FiRefreshCw, FiSettings, FiTarget, FiUser } from "react-icons/fi";
+import { FiActivity, FiCreditCard, FiDollarSign, FiHome, FiPieChart, FiRefreshCw, FiSettings, FiTarget } from "react-icons/fi";
 
 const items = [
   { to: "/", label: "Dashboard", icon: <FiHome /> },
@@ -9,7 +9,6 @@ const items = [
   { to: "/reports", label: "Reports", icon: <FiDollarSign /> },
   { to: "/recurring", label: "Recurring", icon: <FiRefreshCw /> },
   { to: "/accounts", label: "Accounts", icon: <FiCreditCard /> },
-  { to: "/user-profile", label: "User Profile", icon: <FiUser /> },
   { to: "/settings", label: "Settings", icon: <FiSettings /> }
 ];
 

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Card } from "components/common/Card";
 import { PageHeader } from "components/common/PageHeader";
 import { CategorySpendChart } from "components/charts/CategorySpendChart";
@@ -7,9 +8,14 @@ import { EmptyState, LoadingState } from "components/feedback/States";
 import { useCategorySpend, useIncomeExpense, useSavingsReport } from "hooks/useFinanceQueries";
 
 export const ReportsPage = () => {
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const to = now.toISOString();
+  const { from, to } = useMemo(() => {
+    const now = new Date();
+    return {
+      from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+      to: now.toISOString()
+    };
+  }, []);
+
   const category = useCategorySpend(from, to);
   const incomeExpense = useIncomeExpense(from, to);
   const savings = useSavingsReport();
