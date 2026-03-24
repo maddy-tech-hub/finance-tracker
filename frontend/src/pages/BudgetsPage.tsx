@@ -20,6 +20,11 @@ const getStatusTone = (level: string) => {
 const monthLabel = (month: number, year: number) =>
   new Date(year, month - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" });
 
+const monthOptions = Array.from({ length: 12 }, (_, index) => ({
+  value: index + 1,
+  label: new Date(2000, index, 1).toLocaleString(undefined, { month: "long" })
+}));
+
 export const BudgetsPage = () => {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -34,17 +39,8 @@ export const BudgetsPage = () => {
   const [editYear, setEditYear] = useState(String(currentYear));
   const defaultUpcomingMonth = new Date(currentYear, currentMonth, 1).getMonth() + 1;
   const defaultUpcomingYear = new Date(currentYear, currentMonth, 1).getFullYear();
-  const [upcomingBaseMonthInput, setUpcomingBaseMonthInput] = useState(String(defaultUpcomingMonth));
-  const [upcomingBaseYearInput, setUpcomingBaseYearInput] = useState(String(defaultUpcomingYear));
-
-  const parsedUpcomingMonth = Number(upcomingBaseMonthInput);
-  const parsedUpcomingYear = Number(upcomingBaseYearInput);
-  const upcomingBaseMonth = Number.isFinite(parsedUpcomingMonth) && parsedUpcomingMonth >= 1 && parsedUpcomingMonth <= 12
-    ? parsedUpcomingMonth
-    : defaultUpcomingMonth;
-  const upcomingBaseYear = Number.isFinite(parsedUpcomingYear) && parsedUpcomingYear >= 2000 && parsedUpcomingYear <= 2100
-    ? parsedUpcomingYear
-    : defaultUpcomingYear;
+  const [upcomingBaseMonth, setUpcomingBaseMonth] = useState(defaultUpcomingMonth);
+  const [upcomingBaseYear, setUpcomingBaseYear] = useState(defaultUpcomingYear);
 
   const createBudget = useMutation({
     mutationFn: budgetService.create,
@@ -98,7 +94,10 @@ export const BudgetsPage = () => {
       <PageHeader title="Budgets" subtitle="Set spending guardrails and stay in control before month-end surprises." />
 
       <Card title="Create monthly budget" subtitle="One budget per expense category for any month">
-        <form className="row-form" onSubmit={(e) => {
+        <p className="budget-create-hint">
+          Pick an expense category, set a monthly cap, then choose the month and year this budget should apply to.
+        </p>
+        <form className="row-form budget-create-form" onSubmit={(e) => {
           e.preventDefault();
           if (expenseCategories.length === 0) {
             toast.error("Create at least one expense category first.");
@@ -113,14 +112,34 @@ export const BudgetsPage = () => {
             amount: Number(form.get("amount") || 0)
           });
         }}>
-          <select name="categoryId" required>
-            {expenseCategories.length === 0 ? <option value="">No expense categories</option> : null}
-            {expenseCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <input name="amount" type="number" min="0.01" step="0.01" placeholder="Monthly limit" required />
-          <input name="month" type="number" min="1" max="12" defaultValue={currentMonth} required />
-          <input name="year" type="number" min="2000" max="2100" defaultValue={currentYear} required />
-          <button className="primary-btn" type="submit" disabled={createBudget.isPending || expenseCategories.length === 0}>
+          <label className="field">
+            <span>Category</span>
+            <select name="categoryId" required>
+              {expenseCategories.length === 0 ? <option value="">No expense categories</option> : null}
+              {expenseCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Monthly limit</span>
+            <input name="amount" type="number" min="0.01" step="0.01" placeholder="e.g. 12000" required />
+          </label>
+
+          <label className="field">
+            <span>Month</span>
+            <select name="month" defaultValue={String(currentMonth)} required>
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Year</span>
+            <input name="year" type="number" min="2000" max="2100" defaultValue={currentYear} required />
+          </label>
+
+          <button className="primary-btn budget-create-submit" type="submit" disabled={createBudget.isPending || expenseCategories.length === 0}>
             {createBudget.isPending ? "Saving..." : "Save Budget"}
           </button>
         </form>
@@ -190,39 +209,30 @@ export const BudgetsPage = () => {
           <form className="budget-filter" onSubmit={(e) => e.preventDefault()}>
             <label className="budget-filter-field">
               <span>Month</span>
-              <input
+              <select
                 aria-label="Upcoming start month"
                 title="Upcoming start month"
-                type="text"
-                inputMode="numeric"
-                maxLength={2}
-                value={upcomingBaseMonthInput}
-                onChange={(e) => setUpcomingBaseMonthInput(e.target.value.replace(/\D/g, ""))}
-                onBlur={() => {
-                  const monthValue = Number(upcomingBaseMonthInput);
-                  const nextValue = Number.isFinite(monthValue) && monthValue >= 1 && monthValue <= 12
-                    ? monthValue
-                    : defaultUpcomingMonth;
-                  setUpcomingBaseMonthInput(String(nextValue));
-                }}
-              />
+                value={upcomingBaseMonth}
+                onChange={(e) => setUpcomingBaseMonth(Number(e.target.value))}
+              >
+                {monthOptions.map((option) => (
+                  <option key={`upcoming-${option.value}`} value={option.value}>{option.label}</option>
+                ))}
+              </select>
             </label>
             <label className="budget-filter-field">
               <span>Year</span>
               <input
                 aria-label="Upcoming start year"
                 title="Upcoming start year"
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                value={upcomingBaseYearInput}
-                onChange={(e) => setUpcomingBaseYearInput(e.target.value.replace(/\D/g, ""))}
-                onBlur={() => {
-                  const yearValue = Number(upcomingBaseYearInput);
-                  const nextValue = Number.isFinite(yearValue) && yearValue >= 2000 && yearValue <= 2100
-                    ? yearValue
-                    : defaultUpcomingYear;
-                  setUpcomingBaseYearInput(String(nextValue));
+                type="number"
+                min="2000"
+                max="2100"
+                value={upcomingBaseYear}
+                onChange={(e) => {
+                  const nextYear = Number(e.target.value);
+                  if (!Number.isFinite(nextYear)) return;
+                  setUpcomingBaseYear(nextYear);
                 }}
               />
             </label>

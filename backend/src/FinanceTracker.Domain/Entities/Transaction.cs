@@ -1,4 +1,4 @@
-using FinanceTracker.Domain.Common;
+﻿using FinanceTracker.Domain.Common;
 using FinanceTracker.Domain.Enums;
 
 namespace FinanceTracker.Domain.Entities;
@@ -21,4 +21,6 @@ public sealed class Transaction : BaseEntity
     public Account? DestinationAccount { get; set; }
     public Category? Category { get; set; }
     public RecurringTransaction? RecurringTransaction { get; set; }
+    public ICollection<TransactionAlert> Alerts { get; set; } = new List<TransactionAlert>();
+    public ICollection<TransactionTag> Tags { get; set; } = new List<TransactionTag>();
 }

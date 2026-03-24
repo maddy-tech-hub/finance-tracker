@@ -1,13 +1,21 @@
-import { api } from "lib/apiClient";
+﻿import { api } from "lib/apiClient";
 import type {
   ApiResponse,
   Budget,
   Category,
   DashboardSummary,
+  ForecastDaily,
+  ForecastMonth,
   Goal,
+  HealthScore,
+  InsightSummary,
+  NetWorthResponse,
   RecurringItem,
   RecurringRequest,
-  Transaction
+  Rule,
+  RuleRequest,
+  Transaction,
+  TrendsResponse
 } from "types/api";
 
 type CategorySpendItem = { categoryName: string; totalAmount: number };
@@ -63,5 +71,31 @@ export const reportService = {
   categorySpend: async (from: string, to: string) => (await api.get<ApiResponse<CategorySpendItem[]>>(`/reports/category-spend?from=${from}&to=${to}`)).data.data,
   incomeVsExpense: async (from: string, to: string) => (await api.get<ApiResponse<IncomeVsExpenseItem[]>>(`/reports/income-vs-expense?from=${from}&to=${to}`)).data.data,
   balanceTrend: async (from: string, to: string) => (await api.get<ApiResponse<AccountBalanceTrendItem[]>>(`/reports/account-balance-trend?from=${from}&to=${to}`)).data.data,
-  savings: async () => (await api.get<ApiResponse<SavingsProgressItem[]>>("/reports/savings-progress")).data.data
+  savings: async () => (await api.get<ApiResponse<SavingsProgressItem[]>>("/reports/savings-progress")).data.data,
+  exportCsvUrl: (from: string, to: string) => `${api.defaults.baseURL}/reports/export/csv?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
 };
+
+export const insightV2Service = {
+  healthScore: async () => (await api.get<ApiResponse<HealthScore>>("/v2/insights/health-score")).data.data,
+  insights: async () => (await api.get<ApiResponse<InsightSummary>>("/v2/insights")).data.data
+};
+
+export const reportsV2Service = {
+  trends: async (params: { from: string; to: string; accountId?: string; categoryId?: string }) =>
+    (await api.get<ApiResponse<TrendsResponse>>("/v2/reports/trends", { params })).data.data,
+  netWorth: async (from: string, to: string) =>
+    (await api.get<ApiResponse<NetWorthResponse>>("/v2/reports/net-worth", { params: { from, to } })).data.data
+};
+
+export const forecastV2Service = {
+  month: async () => (await api.get<ApiResponse<ForecastMonth>>("/v2/forecast/month")).data.data,
+  daily: async () => (await api.get<ApiResponse<ForecastDaily>>("/v2/forecast/daily")).data.data
+};
+
+export const rulesV2Service = {
+  list: async () => (await api.get<ApiResponse<Rule[]>>("/v2/rules")).data.data,
+  create: async (payload: RuleRequest) => (await api.post<ApiResponse<Rule>>("/v2/rules", payload)).data.data,
+  update: async (id: string, payload: RuleRequest) => (await api.put<ApiResponse<Rule>>(`/v2/rules/${id}`, payload)).data.data,
+  remove: async (id: string) => api.delete(`/v2/rules/${id}`)
+};
+

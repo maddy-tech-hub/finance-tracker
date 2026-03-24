@@ -1,4 +1,4 @@
-using FinanceTracker.Application.Common;
+﻿using FinanceTracker.Application.Common;
 using FinanceTracker.Application.DTOs.Transactions;
 using FinanceTracker.Application.Interfaces;
 using FinanceTracker.Infrastructure.Common;
@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Services;
 
-public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserService currentUser) : ITransactionService
+public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserService currentUser, IRuleEngineService? ruleEngine = null) : ITransactionService
 {
     public async Task<IReadOnlyList<TransactionResponse>> GetAllAsync(DateTime? from, DateTime? to, string? search, Guid? accountId, Guid? categoryId, CancellationToken cancellationToken)
     {
@@ -56,6 +56,12 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
         await ApplyImpactAsync(entity, cancellationToken);
         db.Transactions.Add(entity);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (ruleEngine is not null)
+        {
+            await ruleEngine.ApplyOnTransactionCreateAsync(entity, cancellationToken);
+        }
+
         await trx.CommitAsync(cancellationToken);
 
         return Map(entity);
@@ -156,4 +162,3 @@ public sealed class TransactionService(FinanceTrackerDbContext db, ICurrentUserS
 
     private static TransactionResponse Map(Transaction x) => new(x.Id, x.AccountId, x.DestinationAccountId, x.CategoryId, x.Type, x.Amount, x.TransactionDate, x.Note);
 }
-

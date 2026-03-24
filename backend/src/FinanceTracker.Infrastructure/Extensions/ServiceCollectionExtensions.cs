@@ -1,4 +1,4 @@
-using FinanceTracker.Application.Interfaces;
+﻿using FinanceTracker.Application.Interfaces;
 using FinanceTracker.Infrastructure.HostedServices;
 using FinanceTracker.Infrastructure.Persistence;
 using FinanceTracker.Infrastructure.Security;
@@ -31,6 +31,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IUserCategoryInitializer, UserCategoryInitializer>();
+
+        services.AddScoped<IHealthScoreService, HealthScoreService>();
+        services.AddScoped<IAdvancedReportService, AdvancedReportService>();
+        services.AddScoped<IForecastService, ForecastService>();
+        services.AddScoped<IInsightService, InsightService>();
+        services.AddScoped<IRuleService, RuleService>();
+        services.AddScoped<IRuleEngineService, RuleEngineService>();
 
         services.AddHostedService<RecurringTransactionHostedService>();
 

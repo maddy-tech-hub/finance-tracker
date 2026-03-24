@@ -1,4 +1,4 @@
-using FinanceTracker.Application.Common;
+﻿using FinanceTracker.Application.Common;
 using FinanceTracker.Application.DTOs.Recurring;
 using FinanceTracker.Application.DTOs.Transactions;
 using FinanceTracker.Application.Interfaces;
@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Services;
 
-public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserService currentUser) : IRecurringService
+public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserService currentUser, IRuleEngineService? ruleEngine = null) : IRecurringService
 {
     public async Task<IReadOnlyList<RecurringResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
@@ -24,9 +24,9 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
     public async Task<RecurringResponse> CreateAsync(RecurringRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
-        var startDateUtc = UtcDateTime.Normalize(request.StartDate);
-        var nextRunDateUtc = UtcDateTime.Normalize(request.NextRunDate);
-        var endDateUtc = UtcDateTime.Normalize(request.EndDate);
+        var startDateUtc = NormalizeScheduleDate(request.StartDate);
+        var nextRunDateUtc = NormalizeScheduleDate(request.NextRunDate);
+        var endDateUtc = NormalizeScheduleDate(request.EndDate);
 
         var recurring = new RecurringTransaction
         {
@@ -46,15 +46,22 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
 
         db.RecurringTransactions.Add(recurring);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!recurring.IsPaused)
+        {
+            await ProcessRecurringItemIfDueAsync(recurring, DateTime.UtcNow, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return Map(recurring);
     }
 
     public async Task<RecurringResponse> UpdateAsync(Guid id, RecurringRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
-        var startDateUtc = UtcDateTime.Normalize(request.StartDate);
-        var nextRunDateUtc = UtcDateTime.Normalize(request.NextRunDate);
-        var endDateUtc = UtcDateTime.Normalize(request.EndDate);
+        var startDateUtc = NormalizeScheduleDate(request.StartDate);
+        var nextRunDateUtc = NormalizeScheduleDate(request.NextRunDate);
+        var endDateUtc = NormalizeScheduleDate(request.EndDate);
 
         var recurring = await db.RecurringTransactions.FirstOrDefaultAsync(x => x.Id == id && x.UserId == currentUser.UserId, cancellationToken)
             ?? throw new NotFoundException("Recurring transaction not found.");
@@ -72,6 +79,13 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
         recurring.IsPaused = request.IsPaused;
 
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!recurring.IsPaused)
+        {
+            await ProcessRecurringItemIfDueAsync(recurring, DateTime.UtcNow, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return Map(recurring);
     }
 
@@ -86,48 +100,64 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
 
     public async Task ProcessDueTransactionsAsync(CancellationToken cancellationToken)
     {
+        var nowUtc = DateTime.UtcNow;
         var due = await db.RecurringTransactions
-            .Where(x => !x.IsPaused && x.NextRunDate <= DateTime.UtcNow && (!x.EndDate.HasValue || x.EndDate >= DateTime.UtcNow))
+            .Where(x => !x.IsPaused && x.NextRunDate <= nowUtc && (!x.EndDate.HasValue || x.EndDate >= nowUtc))
             .OrderBy(x => x.NextRunDate)
             .ToListAsync(cancellationToken);
 
         foreach (var item in due)
         {
-            var scopeUser = new SystemUserContext(item.UserId);
-            var txService = new TransactionService(db, scopeUser);
-
-            var guard = 0;
-            while (item.NextRunDate <= DateTime.UtcNow && guard < 60)
-            {
-                var scheduleDate = item.NextRunDate;
-                var exists = await db.Transactions.AnyAsync(
-                    t => t.RecurringTransactionId == item.Id && t.TransactionDate.Date == scheduleDate.Date,
-                    cancellationToken);
-
-                if (!exists)
-                {
-                    var created = await txService.CreateAsync(
-                        new TransactionRequest(item.AccountId, item.DestinationAccountId, item.CategoryId, item.Type, item.Amount, scheduleDate, item.Note),
-                        cancellationToken);
-
-                    var createdTx = await db.Transactions.FirstAsync(
-                        x => x.Id == created.Id && x.UserId == item.UserId,
-                        cancellationToken);
-
-                    createdTx.RecurringTransactionId = item.Id;
-                    createdTx.IsRecurringGenerated = true;
-                }
-
-                item.NextRunDate = NextDate(scheduleDate, item.Frequency);
-                guard++;
-                if (item.EndDate.HasValue && item.NextRunDate > item.EndDate.Value)
-                {
-                    break;
-                }
-            }
+            await ProcessRecurringItemIfDueAsync(item, nowUtc, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ProcessRecurringItemIfDueAsync(RecurringTransaction item, DateTime nowUtc, CancellationToken cancellationToken)
+    {
+        if (item.IsPaused || item.NextRunDate > nowUtc)
+        {
+            return;
+        }
+
+        var scopeUser = new SystemUserContext(item.UserId);
+        var txService = new TransactionService(db, scopeUser, ruleEngine);
+
+        var guard = 0;
+        while (item.NextRunDate <= nowUtc && guard < 60)
+        {
+            var scheduleDate = item.NextRunDate;
+            if (item.EndDate.HasValue && scheduleDate > item.EndDate.Value)
+            {
+                break;
+            }
+
+            var exists = await db.Transactions.AnyAsync(
+                t => t.RecurringTransactionId == item.Id && t.TransactionDate.Date == scheduleDate.Date,
+                cancellationToken);
+
+            if (!exists)
+            {
+                var created = await txService.CreateAsync(
+                    new TransactionRequest(item.AccountId, item.DestinationAccountId, item.CategoryId, item.Type, item.Amount, scheduleDate, item.Note),
+                    cancellationToken);
+
+                var createdTx = await db.Transactions.FirstAsync(
+                    x => x.Id == created.Id && x.UserId == item.UserId,
+                    cancellationToken);
+
+                createdTx.RecurringTransactionId = item.Id;
+                createdTx.IsRecurringGenerated = true;
+            }
+
+            item.NextRunDate = NextDate(scheduleDate, item.Frequency);
+            guard++;
+            if (item.EndDate.HasValue && item.NextRunDate > item.EndDate.Value)
+            {
+                break;
+            }
+        }
     }
 
     private static DateTime NextDate(DateTime current, RecurrenceFrequency frequency) => frequency switch
@@ -138,6 +168,16 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
         RecurrenceFrequency.Yearly => current.AddYears(1),
         _ => current.AddMonths(1)
     };
+
+    private static DateTime NormalizeScheduleDate(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime()
+    };
+
+    private static DateTime? NormalizeScheduleDate(DateTime? value) =>
+        value.HasValue ? NormalizeScheduleDate(value.Value) : null;
 
     private static void Validate(RecurringRequest request)
     {
@@ -165,3 +205,4 @@ public sealed class RecurringService(FinanceTrackerDbContext db, ICurrentUserSer
         public Guid UserId { get; } = userId;
     }
 }
+

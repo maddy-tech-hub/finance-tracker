@@ -98,15 +98,15 @@ export const GoalsPage = () => {
         }}>
           <label className="field">
             <span>Goal name</span>
-            <input name="name" placeholder="e.g., Emergency Fund" required />
+            <input name="name" placeholder="Goal name (e.g., Emergency Fund)" required />
           </label>
           <label className="field">
             <span>Target amount</span>
-            <input name="targetAmount" type="number" min="0.01" step="0.01" placeholder="How much do you want to save?" required />
+            <input name="targetAmount" type="number" min="0.01" step="0.01" placeholder="Target amount" required />
           </label>
           <label className="field">
             <span>Current amount</span>
-            <input name="currentAmount" type="number" min="0" step="0.01" placeholder="How much do you already have?" defaultValue={0} />
+            <input name="currentAmount" type="number" min="0" step="0.01" placeholder="Starting amount" defaultValue={0} />
           </label>
           <label className="field">
             <span>Target date (optional)</span>

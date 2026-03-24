@@ -1,4 +1,4 @@
-using FinanceTracker.Domain.Entities;
+﻿using FinanceTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Persistence;
@@ -14,6 +14,9 @@ public sealed class FinanceTrackerDbContext(DbContextOptions<FinanceTrackerDbCon
     public DbSet<RecurringTransaction> RecurringTransactions => Set<RecurringTransaction>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<RuleDefinition> Rules => Set<RuleDefinition>();
+    public DbSet<TransactionAlert> TransactionAlerts => Set<TransactionAlert>();
+    public DbSet<TransactionTag> TransactionTags => Set<TransactionTag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

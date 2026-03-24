@@ -296,6 +296,56 @@ namespace FinanceTracker.Infrastructure.Persistence.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("FinanceTracker.Domain.Entities.RuleDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ActionValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("AmountThreshold")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("ConditionType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConditionValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsActive", "Priority");
+
+                    b.ToTable("rules", (string)null);
+                });
+
             modelBuilder.Entity("FinanceTracker.Domain.Entities.SavingsGoal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -405,6 +455,74 @@ namespace FinanceTracker.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_transactions_amount", "\"Amount\" > 0");
                         });
+                });
+
+            modelBuilder.Entity("FinanceTracker.Domain.Entities.TransactionAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId");
+
+                    b.HasIndex("UserId", "TransactionId");
+
+                    b.ToTable("transaction_alerts", (string)null);
+                });
+
+            modelBuilder.Entity("FinanceTracker.Domain.Entities.TransactionTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId", "Tag")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Tag");
+
+                    b.ToTable("transaction_tags", (string)null);
                 });
 
             modelBuilder.Entity("FinanceTracker.Domain.Entities.User", b =>
@@ -545,6 +663,17 @@ namespace FinanceTracker.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FinanceTracker.Domain.Entities.RuleDefinition", b =>
+                {
+                    b.HasOne("FinanceTracker.Domain.Entities.User", "User")
+                        .WithMany("Rules")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FinanceTracker.Domain.Entities.SavingsGoal", b =>
                 {
                     b.HasOne("FinanceTracker.Domain.Entities.Account", "LinkedAccount")
@@ -603,6 +732,44 @@ namespace FinanceTracker.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FinanceTracker.Domain.Entities.TransactionAlert", b =>
+                {
+                    b.HasOne("FinanceTracker.Domain.Entities.Transaction", "Transaction")
+                        .WithMany("Alerts")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FinanceTracker.Domain.Entities.User", "User")
+                        .WithMany("Alerts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FinanceTracker.Domain.Entities.TransactionTag", b =>
+                {
+                    b.HasOne("FinanceTracker.Domain.Entities.Transaction", "Transaction")
+                        .WithMany("Tags")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FinanceTracker.Domain.Entities.User", "User")
+                        .WithMany("TransactionTags")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FinanceTracker.Domain.Entities.Account", b =>
                 {
                     b.Navigation("DestinationTransactions");
@@ -624,9 +791,18 @@ namespace FinanceTracker.Infrastructure.Persistence.Migrations
                     b.Navigation("Transactions");
                 });
 
+            modelBuilder.Entity("FinanceTracker.Domain.Entities.Transaction", b =>
+                {
+                    b.Navigation("Alerts");
+
+                    b.Navigation("Tags");
+                });
+
             modelBuilder.Entity("FinanceTracker.Domain.Entities.User", b =>
                 {
                     b.Navigation("Accounts");
+
+                    b.Navigation("Alerts");
 
                     b.Navigation("Budgets");
 
@@ -639,6 +815,10 @@ namespace FinanceTracker.Infrastructure.Persistence.Migrations
                     b.Navigation("RecurringTransactions");
 
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("Rules");
+
+                    b.Navigation("TransactionTags");
 
                     b.Navigation("Transactions");
                 });

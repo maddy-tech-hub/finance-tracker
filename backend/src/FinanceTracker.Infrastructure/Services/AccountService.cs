@@ -6,11 +6,18 @@ using FinanceTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using FinanceTracker.Infrastructure.Persistence;
 using FinanceTracker.Domain.Enums;
+using FinanceTracker.Infrastructure.Seeding;
 
 namespace FinanceTracker.Infrastructure.Services;
 
-public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserService currentUser) : IAccountService
+public sealed class AccountService(
+    FinanceTrackerDbContext db,
+    ICurrentUserService currentUser,
+    IUserCategoryInitializer userCategoryInitializer) : IAccountService
 {
+    private const string OpeningBalanceNote = "Opening balance";
+    private const string BalanceAdjustmentNote = "Balance adjustment";
+
     public async Task<IReadOnlyList<AccountResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
         return await db.Accounts
@@ -30,6 +37,10 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
         if (alreadyExists)
             throw new AppValidationException("Account name already exists. Use a unique name.");
 
+        await using var trx = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
         var account = new Account
         {
             UserId = currentUser.UserId,
@@ -40,15 +51,34 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
         };
 
         db.Accounts.Add(account);
+
+        var openingEntry = await BuildBalanceEntryAsync(account.Id, request.Balance, OpeningBalanceNote, cancellationToken);
+        if (openingEntry is not null)
+        {
+            db.Transactions.Add(openingEntry);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
+        if (trx is not null)
+        {
+            await trx.CommitAsync(cancellationToken);
+        }
+
         return new AccountResponse(account.Id, account.Name, account.Type, account.Currency, account.Balance, account.IsArchived);
     }
 
     public async Task<AccountResponse> UpdateAsync(Guid id, AccountRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
+        await using var trx = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
         var account = await db.Accounts.FirstOrDefaultAsync(x => x.Id == id && x.UserId == currentUser.UserId, cancellationToken)
             ?? throw new NotFoundException("Account not found.");
+
+        var previousBalance = account.Balance;
+
         var normalizedName = request.Name.Trim().ToLowerInvariant();
         var duplicateName = await db.Accounts.AnyAsync(
             x => x.UserId == currentUser.UserId && x.Id != id && x.Name.ToLower() == normalizedName,
@@ -61,7 +91,19 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
         account.Currency = request.Currency.Trim().ToUpperInvariant();
         account.Balance = request.Balance;
 
+        var delta = request.Balance - previousBalance;
+        var adjustmentEntry = await BuildBalanceEntryAsync(account.Id, delta, BalanceAdjustmentNote, cancellationToken);
+        if (adjustmentEntry is not null)
+        {
+            db.Transactions.Add(adjustmentEntry);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
+        if (trx is not null)
+        {
+            await trx.CommitAsync(cancellationToken);
+        }
+
         return new AccountResponse(account.Id, account.Name, account.Type, account.Currency, account.Balance, account.IsArchived);
     }
 
@@ -123,5 +165,69 @@ public sealed class AccountService(FinanceTrackerDbContext db, ICurrentUserServi
     {
         if (string.IsNullOrWhiteSpace(request.Name)) throw new AppValidationException("Account name is required.");
         if (string.IsNullOrWhiteSpace(request.Currency)) throw new AppValidationException("Currency is required.");
+    }
+
+    private async Task<Transaction?> BuildBalanceEntryAsync(Guid accountId, decimal delta, string note, CancellationToken cancellationToken)
+    {
+        if (delta == 0m)
+        {
+            return null;
+        }
+
+        var type = delta > 0m ? TransactionType.Income : TransactionType.Expense;
+        var categoryType = delta > 0m ? CategoryType.Income : CategoryType.Expense;
+        var categoryId = await ResolveSystemCategoryIdAsync(categoryType, cancellationToken);
+
+        return new Transaction
+        {
+            UserId = currentUser.UserId,
+            AccountId = accountId,
+            CategoryId = categoryId,
+            Type = type,
+            Amount = Math.Abs(delta),
+            Note = note,
+            TransactionDate = UtcDateTime.Normalize(DateTime.UtcNow)
+        };
+    }
+
+    private async Task<Guid> ResolveSystemCategoryIdAsync(CategoryType type, CancellationToken cancellationToken)
+    {
+        var preferredName = type == CategoryType.Income ? "Other" : "Miscellaneous";
+        var preferredNameLower = preferredName.ToLowerInvariant();
+
+        var preferredId = await db.Categories
+            .Where(x => x.UserId == currentUser.UserId && x.Type == type && x.Name.ToLower() == preferredNameLower)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (preferredId != Guid.Empty)
+        {
+            return preferredId;
+        }
+
+        var fallbackId = await db.Categories
+            .Where(x => x.UserId == currentUser.UserId && x.Type == type)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.Name)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (fallbackId != Guid.Empty)
+        {
+            return fallbackId;
+        }
+
+        await userCategoryInitializer.EnsureDefaultCategoriesAsync(currentUser.UserId, cancellationToken);
+
+        fallbackId = await db.Categories
+            .Where(x => x.UserId == currentUser.UserId && x.Type == type)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.Name)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (fallbackId != Guid.Empty)
+        {
+            return fallbackId;
+        }
+
+        throw new AppValidationException("Required categories are missing. Please create categories in Settings.");
     }
 }

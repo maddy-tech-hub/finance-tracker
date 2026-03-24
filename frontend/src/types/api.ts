@@ -108,3 +108,106 @@ export type DashboardSummary = {
   activeGoals: number;
   dueRecurringCount: number;
 };
+
+export type HealthScoreFactor = {
+  key: string;
+  label: string;
+  score: number;
+  maxScore: number;
+  status: string;
+  detail: string;
+};
+
+export type HealthScore = {
+  totalScore: number;
+  maxScore: number;
+  factors: HealthScoreFactor[];
+  suggestions: string[];
+  generatedAtUtc: string;
+  isProvisional?: boolean;
+  provisionalReason?: string;
+  dataPointsUsed?: number;
+};
+
+export type TrendPoint = {
+  period: string;
+  income: number;
+  expense: number;
+  savingsRate: number;
+};
+
+export type CategoryTrendPoint = {
+  period: string;
+  categoryName: string;
+  amount: number;
+};
+
+export type TrendsResponse = {
+  incomeExpenseTrend: TrendPoint[];
+  categoryTrend: CategoryTrendPoint[];
+};
+
+export type NetWorthPoint = {
+  date: string;
+  netWorth: number;
+};
+
+export type NetWorthResponse = {
+  points: NetWorthPoint[];
+  changeAmount: number;
+  changePercent: number;
+};
+
+export type InsightMessage = {
+  title: string;
+  message: string;
+  tone: string;
+};
+
+export type InsightSummary = {
+  messages: InsightMessage[];
+};
+
+export type ForecastMonth = {
+  currentBalance: number;
+  projectedEndOfMonthBalance: number;
+  expectedIncome: number;
+  expectedExpense: number;
+  safeToSpend: number;
+  atRiskOfNegativeBalance: boolean;
+  explanation: string;
+};
+
+export type ForecastDailyPoint = {
+  date: string;
+  projectedBalance: number;
+};
+
+export type ForecastDaily = {
+  points: ForecastDailyPoint[];
+};
+
+export type Rule = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  priority: number;
+  conditionType: number;
+  conditionValue?: string;
+  amountThreshold?: number;
+  actionType: number;
+  actionValue?: string;
+  updatedAtUtc: string;
+};
+
+export type RuleRequest = {
+  name: string;
+  isActive: boolean;
+  priority: number;
+  conditionType: number;
+  conditionValue?: string;
+  amountThreshold?: number;
+  actionType: number;
+  actionValue?: string;
+};
+

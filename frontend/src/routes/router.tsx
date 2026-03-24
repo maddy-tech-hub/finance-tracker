@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+﻿import { createBrowserRouter } from "react-router-dom";
 import { ProtectedRoute } from "routes/ProtectedRoute";
 import { AppLayout } from "layouts/AppLayout";
 import { AuthLayout } from "layouts/AuthLayout";
@@ -15,6 +15,8 @@ import { RecurringPage } from "pages/RecurringPage";
 import { AccountsPage } from "pages/AccountsPage";
 import { SettingsPage } from "pages/SettingsPage";
 import { UserProfilePage } from "pages/UserProfilePage";
+import { InsightsPage } from "pages/InsightsPage";
+import { RulesPage } from "pages/RulesPage";
 
 export const router = createBrowserRouter([
   {
@@ -40,7 +42,9 @@ export const router = createBrowserRouter([
           { path: "/recurring", element: <RecurringPage /> },
           { path: "/accounts", element: <AccountsPage /> },
           { path: "/settings", element: <SettingsPage /> },
-          { path: "/user-profile", element: <UserProfilePage /> }
+          { path: "/user-profile", element: <UserProfilePage /> },
+          { path: "/insights", element: <InsightsPage /> },
+          { path: "/rules", element: <RulesPage /> }
         ]
       }
     ]

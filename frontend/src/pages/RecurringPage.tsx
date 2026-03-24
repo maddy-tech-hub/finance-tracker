@@ -39,12 +39,27 @@ export const RecurringPage = () => {
   const [editNote, setEditNote] = useState("");
   const [editPaused, setEditPaused] = useState(false);
 
+  const refreshRecurringImpact = () => {
+    qc.invalidateQueries({ queryKey: ["recurring"] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+    qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["accounts"] });
+    qc.invalidateQueries({ queryKey: ["budgets"] });
+    qc.invalidateQueries({ queryKey: ["report-category"] });
+    qc.invalidateQueries({ queryKey: ["report-income-expense"] });
+    qc.invalidateQueries({ queryKey: ["report-balance-trend"] });
+    qc.invalidateQueries({ queryKey: ["v2-insights"] });
+    qc.invalidateQueries({ queryKey: ["v2-trends"] });
+    qc.invalidateQueries({ queryKey: ["v2-health-score"] });
+    qc.invalidateQueries({ queryKey: ["v2-forecast-month"] });
+    qc.invalidateQueries({ queryKey: ["v2-forecast-daily"] });
+  };
+
   const createRecurring = useMutation({
     mutationFn: recurringService.create,
     onSuccess: () => {
       toast.success("Recurring transaction saved");
-      qc.invalidateQueries({ queryKey: ["recurring"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      refreshRecurringImpact();
     },
     onError: (error) => toast.error(getApiErrorMessage(error, "Unable to save recurring item"))
   });
@@ -55,8 +70,7 @@ export const RecurringPage = () => {
     onSuccess: () => {
       toast.success("Recurring item updated");
       setEditingItem(null);
-      qc.invalidateQueries({ queryKey: ["recurring"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      refreshRecurringImpact();
     },
     onError: (error) => toast.error(getApiErrorMessage(error, "Unable to update recurring item"))
   });
@@ -65,8 +79,7 @@ export const RecurringPage = () => {
     mutationFn: recurringService.remove,
     onSuccess: () => {
       toast.success("Recurring item deleted");
-      qc.invalidateQueries({ queryKey: ["recurring"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      refreshRecurringImpact();
     },
     onError: (error) => toast.error(getApiErrorMessage(error, "Unable to delete recurring item"))
   });
@@ -195,7 +208,7 @@ export const RecurringPage = () => {
 
             <label className="field recurring-field recurring-amount">
               <span>Amount</span>
-              <input name="amount" type="number" min="0.01" step="0.01" placeholder="e.g., 1500" required />
+              <input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount" required />
             </label>
             <label className="field recurring-field recurring-date">
               <span>First run date</span>
@@ -203,11 +216,11 @@ export const RecurringPage = () => {
             </label>
             <label className="field recurring-field recurring-note-field">
               <span>Description (optional)</span>
-              <input name="note" placeholder="e.g., Netflix, Rent, Salary" />
+              <input name="note" placeholder="Label (e.g., Netflix, Rent)" />
             </label>
 
             <button className="primary-btn recurring-submit-btn" type="submit" disabled={createRecurring.isPending || !canSubmit}>
-              {createRecurring.isPending ? "Saving..." : "Create recurring"}
+              {createRecurring.isPending ? "Saving..." : "Save"}
             </button>
           </form>
         ) : null}
